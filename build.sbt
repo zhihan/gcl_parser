@@ -4,6 +4,8 @@ lazy val root = (project in file(".")).
     version := "0.0.1",
     scalaVersion := "2.11.4",
     libraryDependencies += "org.scala-lang.modules" %
-      "scala-parser-combinators_2.11" % "1.0.3"
+      "scala-parser-combinators_2.11" % "1.0.3", 
+    libraryDependencies += "org.scalatest" % "scalatest_2.11" 
+      % "2.2.1" % "test"
   )
 
