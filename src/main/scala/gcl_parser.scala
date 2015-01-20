@@ -7,9 +7,6 @@ object Parser extends RegexParsers {
   // identifier but not a valid Java identifier
   def identifier: Parser[Types.Identifier] = """[a-zA-Z_](\w|-)*""".r ^^ { _.toString }
 
-
   def booleanLiteral: Parser[BooleanLiteral] = ("true".r ^^^ TrueLiteral ) | (
     "false".r ^^^ FalseLiteral )
-
-
 }
