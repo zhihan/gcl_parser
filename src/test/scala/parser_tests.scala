@@ -16,4 +16,14 @@ class ParserTests extends FunSuite {
     val invalidIds = List("0", "0a", "0_", "-a", "a b")
     assert(!invalidIds.exists(parseIdent))
   }
+
+  def parseBoolean(x:String) = 
+    Parser.parseAll(Parser.booleanLiteral, x)
+
+  test("Boolean literals") {
+    val t = parseBoolean("true")
+    assert ( t.get == TrueLiteral)
+    val f = parseBoolean("false")
+    assert ( f.get == FalseLiteral)
+  }
 }

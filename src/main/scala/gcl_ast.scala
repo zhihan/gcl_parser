@@ -31,3 +31,8 @@ case class FieldValue() {
 
 case class ExpansionInvocation() {
 }
+
+
+abstract class BooleanLiteral
+case object TrueLiteral extends BooleanLiteral {}
+case object FalseLiteral extends BooleanLiteral {}
