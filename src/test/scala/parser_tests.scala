@@ -26,4 +26,18 @@ class ParserTests extends FunSuite {
     val f = parseBoolean("false")
     assert ( f.get == FalseLiteral)
   }
+
+  def parseInteger(x: String) =
+    Parser.parseAll(Parser.integerLiteral, x)
+
+  test("Integer literals") {
+    val x =  parseInteger("010")
+    assert(x.get == 8)
+
+    val y = parseInteger("10")
+    assert(y.get == 10)
+
+    val z = parseInteger("0x10")
+    assert(z.get == 16)
+  }
 }
