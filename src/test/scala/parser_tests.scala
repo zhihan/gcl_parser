@@ -39,5 +39,18 @@ class ParserTests extends FunSuite {
 
     val z = parseInteger("0x10")
     assert(z.get == 16)
+
+    val w = parseInteger("10K")
+    assert(w.get == 10240)
   }
+
+  def parseFloat(x: String) =
+    Parser.parseAll(Parser.floatLiteral, x)
+
+  test("Doulbe literals") {
+    val x =  parseFloat(".01")
+    assert(x.get == new java.lang.Double("0.01"))
+  }
+
+
 }
