@@ -2,10 +2,10 @@ package me.zhihan.gcl
 
 import org.scalatest.FunSuite
 
-class ParserTests extends FunSuite {
+class GCLParserTests extends FunSuite {
   // Helper function to parse identifiers
   def parseIdent(x:String) =
-    Parser.parseAll(Parser.identifier, x).successful
+    GCLParser.parseAll(GCLParser.identifier, x).successful
 
   test("Valid identifiers") {
     val validIds = List("a", "_a", "_", "_1", "a-b")
@@ -18,7 +18,7 @@ class ParserTests extends FunSuite {
   }
 
   def parseBoolean(x:String) = 
-    Parser.parseAll(Parser.booleanLiteral, x)
+    GCLParser.parseAll(GCLParser.booleanLiteral, x)
 
   test("Boolean literals") {
     val t = parseBoolean("true")
@@ -28,7 +28,7 @@ class ParserTests extends FunSuite {
   }
 
   def parseInteger(x: String) =
-    Parser.parseAll(Parser.integerLiteral, x)
+    GCLParser.parseAll(GCLParser.integerLiteral, x)
 
   test("Integer literals") {
     val x =  parseInteger("010")
@@ -45,7 +45,7 @@ class ParserTests extends FunSuite {
   }
 
   def parseFloat(x: String) =
-    Parser.parseAll(Parser.floatLiteral, x)
+    GCLParser.parseAll(GCLParser.floatLiteral, x)
 
   test("Doulbe literals") {
     val x =  parseFloat(".01")
@@ -53,14 +53,17 @@ class ParserTests extends FunSuite {
   }
 
   def parseString(x: String) = 
-    Parser.parseAll(Parser.stringLiteral, x)
+    GCLParser.parseAll(GCLParser.stringLiteral, x)
 
   test("String literals") {
-    val x = parseString(""""ab"""")
+    val x = parseString(""" "ab"""")
     assert(x.get == "ab")
-    val y = parseString("'ab'")
+    val y = parseString(" 'ab'")
     assert(y.get == "ab")
   }
 
+  test("Field properties") {
+    assert(GCLParser.parseAll(GCLParser.fieldProperty, "final").successful)
+  }
 
 }

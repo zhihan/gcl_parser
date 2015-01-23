@@ -3,7 +3,7 @@ package me.zhihan.gcl
 import scala.util.parsing.combinator._
 import scala.util.parsing.combinator.JavaTokenParsers
 
-object Parser extends JavaTokenParsers {
+object GCLParser extends JavaTokenParsers {
 
   // NOTE Cannot use JavaTokenParsers because "a-b" is a valid GCL
   // identifier but not a valid Java identifier
@@ -44,8 +44,12 @@ object Parser extends JavaTokenParsers {
     new java.lang.Double(s)
   }
 
-  /** Strings */
+  /** Strings TODO(zhihan): Handling special strings */
   override def stringLiteral: Parser[String] = doubleQuotedString | singleQuotedString
   def doubleQuotedString: Parser[String] = """"[^"]*"""".r ^^ { _.toString.replaceAll("\"", "") }
   def singleQuotedString: Parser[String] = """'[^']*'""".r ^^ { _.toString.replaceAll("'", "") }
+
+  /** Fields */
+  def fieldProperty: Parser[String] = "final" | "local" | "template" | "validation_ignore" 
+
 }
