@@ -44,4 +44,8 @@ object Parser extends JavaTokenParsers {
     new java.lang.Double(s)
   }
 
+  /** Strings */
+  override def stringLiteral: Parser[String] = doubleQuotedString | singleQuotedString
+  def doubleQuotedString: Parser[String] = """"[^"]*"""".r ^^ { _.toString.replaceAll("\"", "") }
+  def singleQuotedString: Parser[String] = """'[^']*'""".r ^^ { _.toString.replaceAll("'", "") }
 }

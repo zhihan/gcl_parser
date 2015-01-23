@@ -52,5 +52,15 @@ class ParserTests extends FunSuite {
     assert(x.get == new java.lang.Double("0.01"))
   }
 
+  def parseString(x: String) = 
+    Parser.parseAll(Parser.stringLiteral, x)
+
+  test("String literals") {
+    val x = parseString(""""ab"""")
+    assert(x.get == "ab")
+    val y = parseString("'ab'")
+    assert(y.get == "ab")
+  }
+
 
 }
