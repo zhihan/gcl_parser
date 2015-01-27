@@ -3,6 +3,7 @@ package me.zhihan.gcl
 object Types {
   type Identifier = String
 
+  type FieldProperties = List[String]
 }
 
 /* Field definitions */
@@ -19,22 +20,14 @@ case class Field(
   val expansionInvocation: Option[ExpansionInvocation]
 ) {}
 
-
-case class FieldHeader(
-  val id: Types.Identifier,
-  val properties: List[FieldProperty]
-) {}
-
-
 case class FieldValue() {
 }
 
 case class ExpansionInvocation() {
 }
 
-
-abstract class BooleanLiteral
-case object TrueLiteral extends BooleanLiteral {}
-case object FalseLiteral extends BooleanLiteral {}
-
 case class StringLiteral(val value:String) {}
+
+case class FieldHeader(
+  val props: Types.FieldProperties,
+  val id: Types.Identifier) {}

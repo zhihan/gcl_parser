@@ -9,8 +9,8 @@ object GCLParser extends JavaTokenParsers {
   // identifier but not a valid Java identifier
   def identifier: Parser[Types.Identifier] = """[a-zA-Z_](\w|-)*""".r ^^ { _.toString }
 
-  def booleanLiteral: Parser[BooleanLiteral] = ("true".r ^^^ TrueLiteral ) | (
-    "false".r ^^^ FalseLiteral )
+  def booleanLiteral: Parser[Boolean] = ("true".r ^^^ true ) | (
+    "false".r ^^^ false )
 
   /** Integers */
   def integerLiteral: Parser[Integer] =  (hexadecimalInteger | octalInteger |
@@ -50,6 +50,16 @@ object GCLParser extends JavaTokenParsers {
   def singleQuotedString: Parser[String] = """'[^']*'""".r ^^ { _.toString.replaceAll("'", "") }
 
   /** Fields */
-  def fieldProperty: Parser[String] = "final" | "local" | "template" | "validation_ignore" 
+  def fieldProperty: Parser[String] = "final" | "local" | "template" | "validation_ignore"
+  def fieldProperties: Parser[List[String]] = fieldProperty.* 
+  def fieldPropertiesNonEmpty: Parser[List[String]] = rep1(fieldProperty)
+
+  // TODO(zhihan): I do not quite understand the semantics of the clause
+  // fieldProperties id id 
+  def fieldHeader: Parser[FieldHeader] = (fieldProperties ~ "." ~ identifier ^^ {
+    case props ~ "." ~ id => FieldHeader(props, id)
+  }) | (fieldProperties ~ identifier ^^ {
+    case props ~ id => FieldHeader(props, id)
+  })
 
 }

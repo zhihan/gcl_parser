@@ -22,9 +22,9 @@ class GCLParserTests extends FunSuite {
 
   test("Boolean literals") {
     val t = parseBoolean("true")
-    assert ( t.get == TrueLiteral)
+    assert ( t.get == true)
     val f = parseBoolean("false")
-    assert ( f.get == FalseLiteral)
+    assert ( f.get == false)
   }
 
   def parseInteger(x: String) =
@@ -64,6 +64,33 @@ class GCLParserTests extends FunSuite {
 
   test("Field properties") {
     assert(GCLParser.parseAll(GCLParser.fieldProperty, "final").successful)
+
+    assert(GCLParser.parseAll(GCLParser.fieldProperties, "final").successful)
+    assert(GCLParser.parseAll(GCLParser.fieldProperties, "").successful)
+    assert(GCLParser.parseAll(GCLParser.fieldProperties, "final local").successful)
+
+    assert(GCLParser.parseAll(
+      GCLParser.fieldPropertiesNonEmpty, "final").successful)
+    assert(!GCLParser.parseAll(
+      GCLParser.fieldPropertiesNonEmpty, "").successful)
+    assert(GCLParser.parseAll(
+      GCLParser.fieldPropertiesNonEmpty, "final local").successful)
+  }
+
+  def parseFieldHeader(x:String) =
+    GCLParser.parseAll(GCLParser.fieldHeader, x)
+
+  test("Field header") {
+    val a = parseFieldHeader(" .a")
+    assert(a.successful)
+    assert(a.get.props.size == 0)
+    assert(a.get.id == "a")
+
+    val b = parseFieldHeader("final local b")
+    assert(b.successful)
+    assert(b.get.props.size == 2)
+    assert(b.get.id == "b")
+
   }
 
 }
