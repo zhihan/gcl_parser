@@ -62,4 +62,17 @@ object GCLParser extends JavaTokenParsers {
     case props ~ id => FieldHeader(props, id)
   })
 
+  /** Expansions */
+  def signatureList: Parser[List[Types.Identifier]] = ("""\(\w*\)""".r ^^ { 
+    _ => List[Types.Identifier]()
+  }) | ("(" ~ identifier ~ ("," ~ identifier).* ~ ")" ^^ {
+    case _ ~ h ~ pairList ~ _ => {
+      h :: (pairList map { case _ ~ id => id })
+    }
+  })
+
+  def signature: Parser[List[Types.Identifier]] = signatureList.? ^^ {
+    case Some(listId) => listId
+    case None => List[Types.Identifier]()
+  }
 }

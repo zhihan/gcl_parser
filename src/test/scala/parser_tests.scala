@@ -90,6 +90,23 @@ class GCLParserTests extends FunSuite {
     assert(b.successful)
     assert(b.get.props.size == 2)
     assert(b.get.id == "b")
+  }
+
+  def parseSignature(x:String) =
+    GCLParser.parseAll(GCLParser.signature, x)
+
+  test("Signature") {
+    val a = parseSignature("()")
+    assert(a.successful)
+    assert(a.get.size == 0)
+    val b = parseSignature("")
+    assert(b.successful)
+    assert(b.get.size == 0)
+
+    val c = parseSignature("(a, b)")
+    assert(c.successful)
+    println(c.get)
+    assert(c.get.size == 2)
 
   }
 
