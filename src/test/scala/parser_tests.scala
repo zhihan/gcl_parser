@@ -137,4 +137,21 @@ class GCLParserTests extends FunSuite {
     assert(b.get == List("a", "b"))
   }
 
+  def isRelOp(x:String) =
+    GCLParser.parseAll(GCLParser.relationalOperator, x).successful
+  test("Relational operator") {
+    val ops = List("<", ">", "<=", ">=", "!=", "==")
+    assert(ops.forall(isRelOp))
+  }
+
+  def parseFactor(x:String) =
+    GCLParser.parseAll(GCLParser.factor, x)
+  test("Factors") {
+    val a = parseFactor("8")
+    assert(a.successful)
+    val b = parseFactor("-19")
+    assert(b.successful)
+    assert(b.get.op == Some("-"))
+  }
+
 }

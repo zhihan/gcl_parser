@@ -93,5 +93,14 @@ object GCLParser extends JavaTokenParsers {
       h :: (pairList map {case _ ~ id  => id})
   }
 
+  /** Operators */
+  def relationalOperator: Parser[Types.RelOp] = """==|>=|<=|<|>|!=""".r ^^ { _.toString }
+  def additionalOperator: Parser[Types.AdditionalOp] = """+|-""".r ^^ { _.toString }
+  def multiplicativeOperator: Parser[Types.MultiplicativeOp] = """*|/""".r ^^ {_.toString}
+  def unaryOperator: Parser[Types.UnaryOp] = "!|-".r ^^ { _.toString }
 
+  def operand: Parser[Operand] = integerLiteral ^^ { IntegerLiteral(_) }
+  def factor: Parser[Factor] = (unaryOperator ~ operand ^^ {
+    case op ~ v => Factor(v, Some(op), None)
+  }) | (operand ^^ { v => Factor(v, None, None)})
 }
