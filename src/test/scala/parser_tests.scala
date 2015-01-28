@@ -176,4 +176,15 @@ class GCLParserTests extends FunSuite {
     assert(d.successful)
   }
 
+  def parseComparison(x:String) =
+    GCLParser.parseAll(GCLParser.comparison, x)
+  test("Comparisons") {
+    val a = parseComparison("1 >= 0")
+    assert(a.successful)
+    val b = parseComparison("6 + 10 * 1 == 1 + 2")
+    assert(b.successful)
+    val c = parseComparison("6 + 10 * 1")
+    assert(c.successful)
+  }
+
 }
