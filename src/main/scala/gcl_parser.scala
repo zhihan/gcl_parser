@@ -53,6 +53,8 @@ object GCLParser extends JavaTokenParsers {
   def doubleQuotedString: Parser[String] = """"[^"]*"""".r ^^ { _.toString.replaceAll("\"", "") }
   def singleQuotedString: Parser[String] = """'[^']*'""".r ^^ { _.toString.replaceAll("'", "") }
 
+  /** TODO(zhihan): expressions */
+
   /** Fields */
   def fieldProperty: Parser[String] = "final" | "local" | "template" | "validation_ignore"
   def fieldProperties: Parser[List[String]] = fieldProperty.* 
@@ -84,5 +86,12 @@ object GCLParser extends JavaTokenParsers {
   def importDef: Parser[Import] = "import" ~ stringLiteral ~ "as" ~ identifier ^^ {
     case _ ~ fileName ~ _ ~ id => Import(fileName, id)
   }
+
+  /** Full path identifier */
+  def identifierSeq: Parser[List[Types.Identifier]] = identifier ~ ("." ~ identifier).* ^^ {
+    case h ~ pairList =>
+      h :: (pairList map {case _ ~ id  => id})
+  }
+
 
 }

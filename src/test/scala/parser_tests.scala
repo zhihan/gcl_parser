@@ -124,4 +124,17 @@ class GCLParserTests extends FunSuite {
     assert(b.get.as == "b")
   }
 
+  def parseIdSeq(x: String) =
+    GCLParser.parseAll(GCLParser.identifierSeq, x)
+
+  test("identifier sequence") {
+    val a = parseIdSeq("a")
+    assert(a.successful)
+    assert(a.get == List("a"))
+
+    val b = parseIdSeq("a.b")
+    assert(b.successful)
+    assert(b.get == List("a", "b"))
+  }
+
 }
