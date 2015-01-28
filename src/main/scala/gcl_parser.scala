@@ -44,7 +44,11 @@ object GCLParser extends JavaTokenParsers {
     new java.lang.Double(s)
   }
 
-  /** Strings TODO(zhihan): Handling special strings */
+  /** 
+    Strings 
+    
+    * TODO(zhihan): Handling special strings 
+    */
   override def stringLiteral: Parser[String] = doubleQuotedString | singleQuotedString
   def doubleQuotedString: Parser[String] = """"[^"]*"""".r ^^ { _.toString.replaceAll("\"", "") }
   def singleQuotedString: Parser[String] = """'[^']*'""".r ^^ { _.toString.replaceAll("'", "") }
@@ -75,4 +79,10 @@ object GCLParser extends JavaTokenParsers {
     case Some(listId) => listId
     case None => List[Types.Identifier]()
   }
+
+  /** Import statements */
+  def importDef: Parser[Import] = "import" ~ stringLiteral ~ "as" ~ identifier ^^ {
+    case _ ~ fileName ~ _ ~ id => Import(fileName, id)
+  }
+
 }

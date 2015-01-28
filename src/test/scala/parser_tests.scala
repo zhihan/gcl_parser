@@ -107,7 +107,21 @@ class GCLParserTests extends FunSuite {
     assert(c.successful)
     println(c.get)
     assert(c.get.size == 2)
+  }
 
+  def parseImport(x: String) =
+    GCLParser.parseAll(GCLParser.importDef, x)
+
+  test("Import") {
+    val a = parseImport("import '/a/b' as b")
+    assert(a.successful)
+    assert(a.get.fileName == "/a/b")
+    assert(a.get.as == "b")
+
+    val b = parseImport("""import "a/b" as b""")
+    assert(b.successful)
+    assert(b.get.fileName == "a/b")
+    assert(b.get.as == "b")
   }
 
 }

@@ -2,8 +2,8 @@ package me.zhihan.gcl
 
 object Types {
   type Identifier = String
-
   type FieldProperties = List[String]
+  type FileName = String
 }
 
 /* Field definitions */
@@ -31,3 +31,10 @@ case class StringLiteral(val value:String) {}
 case class FieldHeader(
   val props: Types.FieldProperties,
   val id: Types.Identifier) {}
+
+/** Import statement */
+case class Import(
+  val fileName: Types.FileName,
+  val as: Types.Identifier) {}
+
+
