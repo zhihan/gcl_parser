@@ -95,12 +95,29 @@ object GCLParser extends JavaTokenParsers {
 
   /** Operators */
   def relationalOperator: Parser[Types.RelOp] = """==|>=|<=|<|>|!=""".r ^^ { _.toString }
-  def additionalOperator: Parser[Types.AdditionalOp] = """+|-""".r ^^ { _.toString }
-  def multiplicativeOperator: Parser[Types.MultiplicativeOp] = """*|/""".r ^^ {_.toString}
+  def additiveOperator: Parser[Types.AdditiveOp] = """\+|-""".r ^^ { _.toString }
+  def multiplicativeOperator: Parser[Types.MultiplicativeOp] = """\*|/""".r ^^ {_.toString}
   def unaryOperator: Parser[Types.UnaryOp] = "!|-".r ^^ { _.toString }
 
   def operand: Parser[Operand] = integerLiteral ^^ { IntegerLiteral(_) }
+
   def factor: Parser[Factor] = (unaryOperator ~ operand ^^ {
     case op ~ v => Factor(v, Some(op), None)
   }) | (operand ^^ { v => Factor(v, None, None)})
+
+  // NOTE
+  // The parser forms the expression tree by recursing right, instead of left.
+  // May require a tree rewriting.
+  def term: Parser[Term] = (factor ~ multiplicativeOperator ~ term ^^ {
+    case f ~ op ~ t => BinaryTerm(op, f, t)
+  }) | (factor ^^ {
+    SimpleTerm(_)
+  })
+
+  def _sum: Parser[Sum] = (term ~ additiveOperator ~ _sum ^^ {
+    case t ~ op ~ s => BinarySum(op, t, s)
+  }) | (term ^^ {
+    SimpleSum(_)
+  })
+
 }

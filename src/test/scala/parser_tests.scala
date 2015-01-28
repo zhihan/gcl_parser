@@ -154,4 +154,26 @@ class GCLParserTests extends FunSuite {
     assert(b.get.op == Some("-"))
   }
 
+ def parseTerm(x:String) =
+    GCLParser.parseAll(GCLParser.term, x)
+  test("Terms") {
+    val a = parseTerm("8")
+    assert(a.successful)
+    val b = parseTerm("6 * 10 * 1")
+    assert(b.successful)
+  }
+
+ def parseSum(x:String) =
+    GCLParser.parseAll(GCLParser._sum, x)
+  test("Sums") {
+    val a = parseSum("8")
+    assert(a.successful)
+    val b = parseSum("6 + 10 * 1")
+    assert(b.successful)
+    val c = parseSum("6 + 10 + 1")
+    assert(c.successful)
+    val d = parseSum("6 * 10 + 1")
+    assert(d.successful)
+  }
+
 }

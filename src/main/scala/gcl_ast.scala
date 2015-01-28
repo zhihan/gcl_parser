@@ -6,7 +6,7 @@ object Types {
   type FileName = String
   type Expression = Disjunction
   type RelOp = String
-  type AdditionalOp = String
+  type AdditiveOp = String
   type MultiplicativeOp = String
   type UnaryOp = String
 }
@@ -51,10 +51,19 @@ case class Conjunction(val clauses: List[Comparison]) {}
 abstract class Comparison
 case class SingleTerm(val term:Term) extends Comparison {}
 case class RelExpression(val op: Types.RelOp,
-  val lhs: SimpleExpression, val rhs: SimpleExpression) {}
+  val lhs: Sum, val rhs: Sum) extends Comparison {}
 
-case class SimpleExpression(val terms: List[Term]) {} 
-case class Term(val factors: List[Factor]) {}
+abstract class Sum
+case class SimpleSum(val term:Term) extends Sum {}
+case class BinarySum(val op:Types.AdditiveOp,
+  val lhs: Term, val rhs: Sum) extends Sum {}
+
+abstract class Term
+case class SimpleTerm(val factor: Factor) extends Term
+case class BinaryTerm(val op:Types.MultiplicativeOp,
+  val lhs: Factor,
+  val rhs: Term) extends Term {}
+
 case class Factor(val operand: Operand,
   val op: Option[Types.UnaryOp],
   val modifier: Option[Structure]) {}
