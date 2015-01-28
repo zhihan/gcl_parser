@@ -120,4 +120,8 @@ object GCLParser extends JavaTokenParsers {
     SimpleSum(_)
   })
 
+  def comparison: Parser[Comparison] = (_sum ~ relationalOperator ~ _sum ^^ {
+    case l ~ op ~ r => Comp(op, l, r)
+  }) | (_sum ^^ { SimpleComp(_) }) 
+
 }

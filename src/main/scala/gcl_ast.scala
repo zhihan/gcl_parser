@@ -49,8 +49,8 @@ case class Disjunction(val clauses: List[Conjunction]) {}
 case class Conjunction(val clauses: List[Comparison]) {}
 
 abstract class Comparison
-case class SingleTerm(val term:Term) extends Comparison {}
-case class RelExpression(val op: Types.RelOp,
+case class SimpleComp(val s: Sum) extends Comparison {}
+case class Comp(val op: Types.RelOp,
   val lhs: Sum, val rhs: Sum) extends Comparison {}
 
 abstract class Sum
