@@ -176,7 +176,7 @@ class GCLParserTests extends FunSuite {
     assert(d.successful)
   }
 
-  def parseComparison(x:String) =
+  def parseComparison(x: String) =
     GCLParser.parseAll(GCLParser.comparison, x)
   test("Comparisons") {
     val a = parseComparison("1 >= 0")
@@ -185,6 +185,25 @@ class GCLParserTests extends FunSuite {
     assert(b.successful)
     val c = parseComparison("6 + 10 * 1")
     assert(c.successful)
+  }
+
+  def parseConjunction(x: String) =
+    GCLParser.parseAll(GCLParser.conjunction, x)
+  test("Conjunction") {
+    val a = parseConjunction("1")
+    assert(a.successful)
+    val b = parseConjunction("1 > 0 && 1 < 2")
+    assert(b.successful)
+  }
+
+  def parseExpression(x: String) =
+    GCLParser.parseAll(GCLParser.expression, x)
+
+  test("Valid expressions") {
+    val l = List("8", "8+1", "8+1>8", "8+1>8 && 8-1 < 8",
+      "8*1>7+0 && 7>6/2 || 2>1", "(1+2)*3", "(1+2>1) && (2<0)",
+      "(8*1)+1")
+    l.forall(parseExpression(_).successful)
   }
 
 }

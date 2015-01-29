@@ -45,7 +45,11 @@ case class Import(
 
 
 /** Expression */
-case class Disjunction(val clauses: List[Conjunction]) {}
+// The root expression with least precedence is the disjunction of
+// logical expressions.
+case class Disjunction(
+  val clauses: List[Conjunction]) extends Operand {}
+
 case class Conjunction(val clauses: List[Comparison]) {}
 
 abstract class Comparison
@@ -71,4 +75,4 @@ case class Factor(val operand: Operand,
 case class Structure() {} 
 
 abstract class Operand
-case class IntegerLiteral(val i:Int) extends Operand  
+case class IntegerLiteral(val i:Int) extends Operand

@@ -7,7 +7,8 @@ object GCLParser extends JavaTokenParsers {
 
   // NOTE Cannot use JavaTokenParsers because "a-b" is a valid GCL
   // identifier but not a valid Java identifier
-  def identifier: Parser[Types.Identifier] = """[a-zA-Z_](\w|-)*""".r ^^ { _.toString }
+  def identifier: Parser[Types.Identifier] =
+    """[a-zA-Z_](\w|-)*""".r ^^ { _.toString }
 
   def booleanLiteral: Parser[Boolean] = ("true".r ^^^ true ) | (
     "false".r ^^^ false )
@@ -49,11 +50,12 @@ object GCLParser extends JavaTokenParsers {
     
     * TODO(zhihan): Handling special strings 
     */
-  override def stringLiteral: Parser[String] = doubleQuotedString | singleQuotedString
-  def doubleQuotedString: Parser[String] = """"[^"]*"""".r ^^ { _.toString.replaceAll("\"", "") }
-  def singleQuotedString: Parser[String] = """'[^']*'""".r ^^ { _.toString.replaceAll("'", "") }
-
-  /** TODO(zhihan): expressions */
+  override def stringLiteral: Parser[String] =
+    doubleQuotedString | singleQuotedString
+  def doubleQuotedString: Parser[String] = """"[^"]*"""".r ^^ {
+    _.toString.replaceAll("\"", "") }
+  def singleQuotedString: Parser[String] = """'[^']*'""".r ^^ {
+    _.toString.replaceAll("'", "") }
 
   /** Fields */
   def fieldProperty: Parser[String] = "final" | "local" | "template" | "validation_ignore"
@@ -93,13 +95,24 @@ object GCLParser extends JavaTokenParsers {
       h :: (pairList map {case _ ~ id  => id})
   }
 
+  /**
+    * Expressions
+    * The following is a simplified version of the rules for parsing expressions.
+    * 
+    * Simplifications:
+    *  - No lambda expressions.
+    * 
+    */
+
   /** Operators */
   def relationalOperator: Parser[Types.RelOp] = """==|>=|<=|<|>|!=""".r ^^ { _.toString }
   def additiveOperator: Parser[Types.AdditiveOp] = """\+|-""".r ^^ { _.toString }
   def multiplicativeOperator: Parser[Types.MultiplicativeOp] = """\*|/""".r ^^ {_.toString}
   def unaryOperator: Parser[Types.UnaryOp] = "!|-".r ^^ { _.toString }
 
-  def operand: Parser[Operand] = integerLiteral ^^ { IntegerLiteral(_) }
+  def operand: Parser[Operand] = ("(" ~ expression ~ ")" ^^ {
+    case _ ~ e ~ _ => e
+  }) | (integerLiteral ^^ { IntegerLiteral(_) })
 
   def factor: Parser[Factor] = (unaryOperator ~ operand ^^ {
     case op ~ v => Factor(v, Some(op), None)
@@ -122,6 +135,15 @@ object GCLParser extends JavaTokenParsers {
 
   def comparison: Parser[Comparison] = (_sum ~ relationalOperator ~ _sum ^^ {
     case l ~ op ~ r => Comp(op, l, r)
-  }) | (_sum ^^ { SimpleComp(_) }) 
+  }) | (_sum ^^ { SimpleComp(_) })
+
+  def conjunction: Parser[Conjunction] = comparison ~ ("&&" ~ comparison).* ^^ {
+    case c ~ pairList => Conjunction(c :: (pairList map { case _ ~ c => c }))
+  }
+
+  /** Expression */
+  def expression: Parser[Disjunction] = conjunction ~ ("||" ~ conjunction).* ^^ {
+    case d ~ pairList => Disjunction(d :: (pairList map {case _ ~ x => x}))
+  }
 
 }
