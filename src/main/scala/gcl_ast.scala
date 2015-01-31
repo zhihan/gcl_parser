@@ -18,20 +18,8 @@ case object Local extends FieldProperty {}
 case object Template extends FieldProperty {}
 case object ValidationIgore extends FieldProperty {}
 
-
-case class Field(
-  val fieldHeader: FieldHeader,
-  val value: FieldValue,
-  val expansionInvocation: Option[ExpansionInvocation]
-) {}
-
-case class FieldValue() {
-}
-
 case class ExpansionInvocation() {
 }
-
-case class StringLiteral(val value:String) {}
 
 case class FieldHeader(
   val props: Types.FieldProperties,
@@ -41,8 +29,6 @@ case class FieldHeader(
 case class Import(
   val fileName: Types.FileName,
   val as: Types.Identifier) {}
-
-
 
 /** Expression */
 // The root expression with least precedence is the disjunction of
@@ -72,7 +58,16 @@ case class Factor(val operand: Operand,
   val op: Option[Types.UnaryOp],
   val modifier: Option[Structure]) {}
 
-case class Structure() {} 
-
 abstract class Operand
-case class IntegerLiteral(val i:Int) extends Operand
+case class IntegerLiteral(val i:Int) extends Operand {}
+case class StringLiteral(val s:String) extends Operand {}
+case class BooleanLiteral(val b:Boolean) extends Operand {}
+case class FloatLiteral(val f:Double) extends Operand {}
+
+abstract class Value
+case class Structure(val fields: List[Field]) extends Value {} 
+case class SimpleValue(val value: Types.Expression) extends Value {}
+
+case class Field(
+  val header: FieldHeader,
+  val value: Value) {}

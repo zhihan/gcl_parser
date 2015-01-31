@@ -206,4 +206,16 @@ class GCLParserTests extends FunSuite {
     l.forall(parseExpression(_).successful)
   }
 
+  def parseField(x: String) =
+    GCLParser.parseAll(GCLParser.field, x)
+
+  test("Valid fields") {
+    val l = List("local x = 1",
+      "x = 1",
+      "x = 1.0",
+      "x = true",
+      "x = 'a'",
+      """x = "b"""")
+    l.forall(parseField(_).successful)
+  }
 }

@@ -45,9 +45,9 @@ object GCLParser extends JavaTokenParsers {
     new java.lang.Double(s)
   }
 
-  /** 
-    Strings 
-    
+  /**
+    * Strings 
+    * 
     * TODO(zhihan): Handling special strings 
     */
   override def stringLiteral: Parser[String] =
@@ -57,11 +57,17 @@ object GCLParser extends JavaTokenParsers {
   def singleQuotedString: Parser[String] = """'[^']*'""".r ^^ {
     _.toString.replaceAll("'", "") }
 
+  def literal: Parser[Operand] = (stringLiteral ^^ {
+    StringLiteral(_) }) | (booleanLiteral ^^ {
+      BooleanLiteral(_)}) | (floatLiteral ^^ {
+        FloatLiteral(_)}) | (integerLiteral ^^ {
+          IntegerLiteral(_)})
+
   /** Fields */
   def fieldProperty: Parser[String] = "final" | "local" | "template" | "validation_ignore"
   def fieldProperties: Parser[List[String]] = fieldProperty.* 
   def fieldPropertiesNonEmpty: Parser[List[String]] = rep1(fieldProperty)
-
+ 
   // TODO(zhihan): I do not quite understand the semantics of the clause
   // fieldProperties id id 
   def fieldHeader: Parser[FieldHeader] = (fieldProperties ~ "." ~ identifier ^^ {
@@ -69,6 +75,15 @@ object GCLParser extends JavaTokenParsers {
   }) | (fieldProperties ~ identifier ^^ {
     case props ~ id => FieldHeader(props, id)
   })
+
+  def value: Parser[Value] = ( "=" ~ expression ^^ {
+    case _ ~ e => SimpleValue(e)
+  })
+
+  def field: Parser[Field] = fieldHeader ~ value ^^ {
+    case h ~ v => Field(h, v)
+  }
+
 
   /** Expansions */
   def signatureList: Parser[List[Types.Identifier]] = ("""\(\w*\)""".r ^^ { 
@@ -103,7 +118,6 @@ object GCLParser extends JavaTokenParsers {
     *  - No lambda expressions.
     * 
     */
-
   /** Operators */
   def relationalOperator: Parser[Types.RelOp] = """==|>=|<=|<|>|!=""".r ^^ { _.toString }
   def additiveOperator: Parser[Types.AdditiveOp] = """\+|-""".r ^^ { _.toString }
@@ -112,7 +126,7 @@ object GCLParser extends JavaTokenParsers {
 
   def operand: Parser[Operand] = ("(" ~ expression ~ ")" ^^ {
     case _ ~ e ~ _ => e
-  }) | (integerLiteral ^^ { IntegerLiteral(_) })
+  }) | literal
 
   def factor: Parser[Factor] = (unaryOperator ~ operand ^^ {
     case op ~ v => Factor(v, Some(op), None)
