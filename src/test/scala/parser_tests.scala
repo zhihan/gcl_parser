@@ -123,85 +123,72 @@ class GCLParserTests extends FunSuite {
     assert(b.get == List("a", "b"))
   }
 
-  def isRelOp(x:String) =
-    GCLParser.parseAll(GCLParser.relationalOperator, x).successful
-  test("Relational operator") {
-    val ops = List("<", ">", "<=", ">=", "!=", "==")
-    assert(ops.forall(isRelOp))
-  }
+  def parseExpression(x:String) =
+    GCLParser.parseAll(GCLParser.expression, x)
 
-  def parseFactor(x:String) =
-    GCLParser.parseAll(GCLParser.factor, x)
   test("Factors") {
-    val a = parseFactor("8")
+    val a = parseExpression("8")
     assert(a.successful)
-    val b = parseFactor("-19")
+    val b = parseExpression("-19")
     assert(b.successful)
-    assert(b.get.op == Some("-"))
   }
 
-  def parseTerm(x:String) =
-    GCLParser.parseAll(GCLParser.term, x)
   test("Terms") {
-    val a = parseTerm("8")
+    val a = parseExpression("8")
     assert(a.successful)
-    val b = parseTerm("6 * 10 * 1")
+    val b = parseExpression("6 * 10 * 1")
     assert(b.successful)
   }
 
-  def parseSum(x:String) =
-    GCLParser.parseAll(GCLParser._sum, x)
   test("Sums") {
-    val a = parseSum("8")
+    val a = parseExpression("8")
     assert(a.successful)
-    val b = parseSum("6 + 10 * 1")
+    val b = parseExpression("6 + 10 * 1")
     assert(b.successful)
-    val c = parseSum("6 + 10 + 1")
+    val c = parseExpression("6 + 10 + 1")
     assert(c.successful)
-    val d = parseSum("6 * 10 + 1")
+    val d = parseExpression("6 * 10 + 1")
     assert(d.successful)
   }
 
-  def parseComparison(x: String) =
-    GCLParser.parseAll(GCLParser.comparison, x)
   test("Comparisons") {
-    val a = parseComparison("1 >= 0")
+    val a = parseExpression("1 >= 0")
     assert(a.successful)
-    val b = parseComparison("6 + 10 * 1 == 1 + 2")
+    val b = parseExpression("6 + 10 * 1 == 1 + 2")
     assert(b.successful)
-    val c = parseComparison("6 + 10 * 1")
+    val c = parseExpression("6 + 10 * 1")
     assert(c.successful)
   }
 
-  def parseConjunction(x: String) =
-    GCLParser.parseAll(GCLParser.conjunction, x)
   test("Conjunction") {
-    val a = parseConjunction("1")
+    val a = parseExpression("1")
     assert(a.successful)
-    val b = parseConjunction("1 > 0 && 1 < 2")
+    val b = parseExpression("1 > 0 && 1 < 2")
     assert(b.successful)
   }
-
-  def parseExpression(x: String) =
-    GCLParser.parseAll(GCLParser.expression, x)
 
   test("Valid expressions") {
     val l = List("8", "8+1", "8+1>8", "8+1>8 && 8-1 < 8",
       "8*1>7+0 && 7>6/2 || 2>1", "(1+2)*3", "(1+2>1) && (2<0)",
-      "(8*1)+1")
+      "(8*1)+1", "[] + [1]")
     l.forall(parseExpression(_).successful)
   }
 
   def parseList(x: String) =
     GCLParser.parseAll(GCLParser.list, x)
 
-  test("Valid lists") {
+  test("Lists can have optional commas") {
     val x = parseList("[1,2,]")
     assert(x.successful)
     assert(x.get.value.size == 2)
     val y = parseList("[1,2]")
     assert(y.successful)
     assert(y.get.value.size == 2)
+  }
+
+  test("Valid lists") {
+    val l = List("[]", "[1+2]", "[1+2,]", "['a', 1]")
+    l.forall(parseList(_).successful)
   }
 
   def parseStructure(x: String) =
