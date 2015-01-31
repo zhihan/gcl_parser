@@ -11,25 +11,6 @@ object Types {
   type UnaryOp = String
 }
 
-/* Field definitions */
-abstract class FieldProperty 
-case object Final extends FieldProperty {}
-case object Local extends FieldProperty {}
-case object Template extends FieldProperty {}
-case object ValidationIgore extends FieldProperty {}
-
-case class ExpansionInvocation() {
-}
-
-case class FieldHeader(
-  val props: Types.FieldProperties,
-  val id: Types.Identifier) {}
-
-/** Import statement */
-case class Import(
-  val fileName: Types.FileName,
-  val as: Types.Identifier) {}
-
 /** Expression */
 // The root expression with least precedence is the disjunction of
 // logical expressions.
@@ -67,6 +48,27 @@ case class FloatLiteral(val f:Double) extends Operand {}
 abstract class Value
 case class Structure(val fields: List[Field]) extends Value {} 
 case class SimpleValue(val value: Types.Expression) extends Value {}
+
+case class ListValue(val value:List[Types.Expression]) {}
+
+/* Field definitions */
+abstract class FieldProperty 
+case object Final extends FieldProperty {}
+case object Local extends FieldProperty {}
+case object Template extends FieldProperty {}
+case object ValidationIgore extends FieldProperty {}
+
+case class ExpansionInvocation() {
+}
+
+case class FieldHeader(
+  val props: Types.FieldProperties,
+  val id: Types.Identifier) {}
+
+/** Import statement */
+case class Import(
+  val fileName: Types.FileName,
+  val as: Types.Identifier) {}
 
 case class Field(
   val header: FieldHeader,

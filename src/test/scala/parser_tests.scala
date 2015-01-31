@@ -206,6 +206,19 @@ class GCLParserTests extends FunSuite {
     l.forall(parseExpression(_).successful)
   }
 
+  def parseList(x: String) =
+    GCLParser.parseAll(GCLParser.list, x)
+
+  test("Valid lists") {
+    val x = parseList("[1,2,]")
+    assert(x.successful)
+    assert(x.get.value.size == 2)
+    val y = parseList("[1,2]")
+    assert(y.successful)
+    assert(y.get.value.size == 2)
+
+  }
+
   def parseField(x: String) =
     GCLParser.parseAll(GCLParser.field, x)
 
@@ -218,4 +231,5 @@ class GCLParserTests extends FunSuite {
       """x = "b"""")
     l.forall(parseField(_).successful)
   }
+
 }

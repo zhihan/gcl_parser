@@ -59,58 +59,12 @@ object GCLParser extends JavaTokenParsers {
 
   def literal: Parser[Operand] = (stringLiteral ^^ {
     StringLiteral(_) }) | (booleanLiteral ^^ {
-      BooleanLiteral(_)}) | (floatLiteral ^^ {
-        FloatLiteral(_)}) | (integerLiteral ^^ {
-          IntegerLiteral(_)})
-
-  /** Fields */
-  def fieldProperty: Parser[String] = "final" | "local" | "template" | "validation_ignore"
-  def fieldProperties: Parser[List[String]] = fieldProperty.* 
-  def fieldPropertiesNonEmpty: Parser[List[String]] = rep1(fieldProperty)
- 
-  // TODO(zhihan): I do not quite understand the semantics of the clause
-  // fieldProperties id id 
-  def fieldHeader: Parser[FieldHeader] = (fieldProperties ~ "." ~ identifier ^^ {
-    case props ~ "." ~ id => FieldHeader(props, id)
-  }) | (fieldProperties ~ identifier ^^ {
-    case props ~ id => FieldHeader(props, id)
-  })
-
-  def value: Parser[Value] = ( "=" ~ expression ^^ {
-    case _ ~ e => SimpleValue(e)
-  })
-
-  def field: Parser[Field] = fieldHeader ~ value ^^ {
-    case h ~ v => Field(h, v)
-  }
-
-
-  /** Expansions */
-  def signatureList: Parser[List[Types.Identifier]] = ("""\(\w*\)""".r ^^ { 
-    _ => List[Types.Identifier]()
-  }) | ("(" ~ identifier ~ ("," ~ identifier).* ~ ")" ^^ {
-    case _ ~ h ~ pairList ~ _ => {
-      h :: (pairList map { case _ ~ id => id })
-    }
-  })
-
-  def signature: Parser[List[Types.Identifier]] = signatureList.? ^^ {
-    case Some(listId) => listId
-    case None => List[Types.Identifier]()
-  }
-
-  /** Import statements */
-  def importDef: Parser[Import] = "import" ~ stringLiteral ~ "as" ~ identifier ^^ {
-    case _ ~ fileName ~ _ ~ id => Import(fileName, id)
-  }
-
-  /** Full path identifier */
-  def identifierSeq: Parser[List[Types.Identifier]] = identifier ~ ("." ~ identifier).* ^^ {
-    case h ~ pairList =>
-      h :: (pairList map {case _ ~ id  => id})
-  }
-
-  /**
+      BooleanLiteral(_)}) | (integerLiteral ^^ {
+        IntegerLiteral(_)})
+  // TODO(zhihan): Cannot support float literal as Scala's built-in float literal
+  // in JavaTokenParser will also accept integers.
+  
+ /**
     * Expressions
     * The following is a simplified version of the rules for parsing expressions.
     * 
@@ -158,6 +112,60 @@ object GCLParser extends JavaTokenParsers {
   /** Expression */
   def expression: Parser[Disjunction] = conjunction ~ ("||" ~ conjunction).* ^^ {
     case d ~ pairList => Disjunction(d :: (pairList map {case _ ~ x => x}))
+  }
+
+  /** Lists */
+  def list: Parser[ListValue] = ("[" ~ nonemptyList ~ "]" ^^ {
+    case _ ~ l ~ _ => l}) | ("""\[\s*\]""".r ^^ { _ => ListValue(List())}) 
+  def nonemptyList: Parser[ListValue] = expression ~ ("," ~ expression).* ~ ",?".r ^^ {
+    case e ~ pairList ~ _ => ListValue(e :: (pairList map { case _ ~ e => e }))
+  }
+
+  /** Fields */
+  def fieldProperty: Parser[String] = "final" | "local" | "template" | "validation_ignore"
+  def fieldProperties: Parser[List[String]] = fieldProperty.* 
+  def fieldPropertiesNonEmpty: Parser[List[String]] = rep1(fieldProperty)
+ 
+  // TODO(zhihan): I do not quite understand the semantics of the clause
+  // fieldProperties id id 
+  def fieldHeader: Parser[FieldHeader] = (fieldProperties ~ "." ~ identifier ^^ {
+    case props ~ "." ~ id => FieldHeader(props, id)
+  }) | (fieldProperties ~ identifier ^^ {
+    case props ~ id => FieldHeader(props, id)
+  })
+
+  def value: Parser[Value] = ( "=" ~ expression ^^ {
+    case _ ~ e => SimpleValue(e)
+  })
+
+  def field: Parser[Field] = fieldHeader ~ value ^^ {
+    case h ~ v => Field(h, v)
+  }
+
+
+  /** Expansions */
+  def signatureList: Parser[List[Types.Identifier]] = ("""\(\w*\)""".r ^^ { 
+    _ => List[Types.Identifier]()
+  }) | ("(" ~ identifier ~ ("," ~ identifier).* ~ ")" ^^ {
+    case _ ~ h ~ pairList ~ _ => {
+      h :: (pairList map { case _ ~ id => id })
+    }
+  })
+
+  def signature: Parser[List[Types.Identifier]] = signatureList.? ^^ {
+    case Some(listId) => listId
+    case None => List[Types.Identifier]()
+  }
+
+  /** Import statements */
+  def importDef: Parser[Import] = "import" ~ stringLiteral ~ "as" ~ identifier ^^ {
+    case _ ~ fileName ~ _ ~ id => Import(fileName, id)
+  }
+
+  /** Full path identifier */
+  def identifierSeq: Parser[List[Types.Identifier]] = identifier ~ ("." ~ identifier).* ^^ {
+    case h ~ pairList =>
+      h :: (pairList map {case _ ~ id  => id})
   }
 
 }
