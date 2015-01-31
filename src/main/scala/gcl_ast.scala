@@ -14,6 +14,8 @@ object Types {
 /** Expression */
 // The root expression with least precedence is the disjunction of
 // logical expressions.
+abstract class Operand
+
 case class Disjunction(
   val clauses: List[Conjunction]) extends Operand {}
 
@@ -39,17 +41,23 @@ case class Factor(val operand: Operand,
   val op: Option[Types.UnaryOp],
   val modifier: Option[Structure]) {}
 
-abstract class Operand
 case class IntegerLiteral(val i:Int) extends Operand {}
 case class StringLiteral(val s:String) extends Operand {}
 case class BooleanLiteral(val b:Boolean) extends Operand {}
 case class FloatLiteral(val f:Double) extends Operand {}
 
-abstract class Value
-case class Structure(val fields: List[Field]) extends Value {} 
-case class SimpleValue(val value: Types.Expression) extends Value {}
+object Operand {
+  def isTrue(o:Operand) = o == BooleanLiteral(true)
+  def isFalse(o:Operand) = o == BooleanLiteral(false)
+  def isString(o:Operand, s:String) = o == StringLiteral(s)
+  def isInt(o:Operand, i:Int) = o == IntegerLiteral(i)
+}
 
-case class ListValue(val value:List[Types.Expression]) {}
+case class ListExpression(val value:List[Types.Expression]) extends Operand {}
+
+// NOTE
+// Value is synonymous to assignment
+case class Value(val value: Operand) {}
 
 /* Field definitions */
 abstract class FieldProperty 
@@ -73,3 +81,5 @@ case class Import(
 case class Field(
   val header: FieldHeader,
   val value: Value) {}
+
+case class Structure(val fields: List[Field]) extends Operand {} 

@@ -17,49 +17,35 @@ class GCLParserTests extends FunSuite {
     assert(!invalidIds.exists(parseIdent))
   }
 
-  def parseBoolean(x:String) = 
-    GCLParser.parseAll(GCLParser.booleanLiteral, x)
+  def parseLiteral(x:String) = 
+    GCLParser.parseAll(GCLParser.literal, x)
 
   test("Boolean literals") {
-    val t = parseBoolean("true")
-    assert ( t.get == true)
-    val f = parseBoolean("false")
-    assert ( f.get == false)
+    val t = parseLiteral("true")
+    assert (Operand.isTrue(t.get))
+    val f = parseLiteral("false")
+    assert (Operand.isFalse(f.get))
   }
-
-  def parseInteger(x: String) =
-    GCLParser.parseAll(GCLParser.integerLiteral, x)
 
   test("Integer literals") {
-    val x =  parseInteger("010")
-    assert(x.get == 8)
+    val x =  parseLiteral("010")
+    assert(Operand.isInt(x.get, 8))
 
-    val y = parseInteger("10")
-    assert(y.get == 10)
+    val y = parseLiteral("10")
+    assert(Operand.isInt(y.get, 10))
 
-    val z = parseInteger("0x10")
-    assert(z.get == 16)
+    val z = parseLiteral("0x10")
+    assert(Operand.isInt(z.get, 16))
 
-    val w = parseInteger("10K")
-    assert(w.get == 10240)
+    val w = parseLiteral("10K")
+    assert(Operand.isInt(w.get, 10240))
   }
-
-  def parseFloat(x: String) =
-    GCLParser.parseAll(GCLParser.floatLiteral, x)
-
-  test("Doulbe literals") {
-    val x =  parseFloat(".01")
-    assert(x.get == new java.lang.Double("0.01"))
-  }
-
-  def parseString(x: String) = 
-    GCLParser.parseAll(GCLParser.stringLiteral, x)
 
   test("String literals") {
-    val x = parseString(""" "ab"""")
-    assert(x.get == "ab")
-    val y = parseString(" 'ab'")
-    assert(y.get == "ab")
+    val x = parseLiteral(""" "ab"""")
+    assert(Operand.isString(x.get,"ab"))
+    val y = parseLiteral(" 'ab'")
+    assert(Operand.isString(y.get,"ab"))
   }
 
   test("Field properties") {
@@ -216,7 +202,17 @@ class GCLParserTests extends FunSuite {
     val y = parseList("[1,2]")
     assert(y.successful)
     assert(y.get.value.size == 2)
+  }
 
+  def parseStructure(x: String) =
+    GCLParser.parseAll(GCLParser.structure, x)
+
+  test("Valid structure") {
+    val  l = List(
+      "{ }",
+      "{a = 1, b = 2}",
+      "{a = 1 + 2}")
+    assert(l.forall(parseStructure(_).successful))
   }
 
   def parseField(x: String) =
@@ -228,8 +224,30 @@ class GCLParserTests extends FunSuite {
       "x = 1.0",
       "x = true",
       "x = 'a'",
-      """x = "b"""")
+      """x = "b"""",
+      "x = [1,2]",
+      "x = 1 + 2",
+      "x = 'a' + 'b'",
+      "x = {a = 1, b = '2'}")
     l.forall(parseField(_).successful)
+  }
+
+  def parseFile(x: String) =
+    GCLParser.parseAll(GCLParser.file, x)
+
+  test("Valid file") {
+   val content = """ 
+a = 1,
+b = 2,
+x = {
+  a = 1, 
+  b = "2",
+  c = 1 + 2
+}
+"""
+    val f = parseFile(content)
+    assert(f.successful)
+    assert(f.get.size == 3)
   }
 
 }

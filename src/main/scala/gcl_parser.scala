@@ -5,33 +5,49 @@ import scala.util.parsing.combinator.JavaTokenParsers
 
 object GCLParser extends JavaTokenParsers {
 
+  /** 
+    * Identifiers
+    * 
+    * Identifiers must begin with a letter and followed by alphanumeric
+    *  or dash ('-')
+    * e.g.,
+    *  a, _a, _1, a-b
+    */ 
   // NOTE Cannot use JavaTokenParsers because "a-b" is a valid GCL
   // identifier but not a valid Java identifier
   def identifier: Parser[Types.Identifier] =
     """[a-zA-Z_](\w|-)*""".r ^^ { _.toString }
 
-  def booleanLiteral: Parser[Boolean] = ("true".r ^^^ true ) | (
+  def literal: Parser[Operand] = (stringLiteral ^^ {
+    StringLiteral(_) }) | (booleanLiteral ^^ {
+      BooleanLiteral(_)}) | (integerLiteral ^^ {
+        IntegerLiteral(_)})
+
+  private def booleanLiteral: Parser[Boolean] = ("true".r ^^^ true ) | (
     "false".r ^^^ false )
 
   /** Integers */
-  def integerLiteral: Parser[Integer] =  (hexadecimalInteger | octalInteger |
-    decimalInteger) ~ integerUnit.? ^^ {
-    case n ~ Some(unit) => n * unit
-    case n ~ None => n
-  }
+  private def integerLiteral: Parser[Integer] =
+    (hexadecimalInteger | octalInteger |
+      decimalInteger) ~ integerUnit.? ^^ {
+      case n ~ Some(unit) => n * unit
+      case n ~ None => n
+    }
 
-  def octalInteger: Parser[Integer] = """0[0-7]+""".r ^^ { s =>
+  private def octalInteger: Parser[Integer] = """0[0-7]+""".r ^^ { s =>
     Integer.parseInt(s.replaceAll("_",""), 8)}
 
-  def decimalInteger: Parser[Integer] = """0|[1-9][0-9_]*""".r ^^ { s =>
+  private def decimalInteger: Parser[Integer] = """0|[1-9][0-9_]*""".r ^^ {
+    s =>
     Integer.parseInt(s.replaceAll("_",""), 10)}
 
-  def hexadecimalInteger: Parser[Integer] = """0x[0-9a-fA-F_]+""".r ^^ { s =>
-    Integer.parseInt(s.replaceAll("_", "").replaceAll("0x", ""), 16)}
+  private def hexadecimalInteger: Parser[Integer] =
+    """0x[0-9a-fA-F_]+""".r ^^ { s =>
+      Integer.parseInt(s.replaceAll("_", "").replaceAll("0x", ""), 16)}
 
   // NOTE fractional integer rule is not implemented (are they even integers?)
 
-  def integerUnit: Parser[Integer] = """[KMG]""".r ^^ {
+  private def integerUnit: Parser[Integer] = """[KMG]""".r ^^ {
     case "K" => 1024
     case "M" => 1024* 1024
     case "G" => 1024 * 1024 * 1024 // Likely to overflow
@@ -41,7 +57,9 @@ object GCLParser extends JavaTokenParsers {
   }
 
   /** Floating point numbers */
-  def floatLiteral: Parser[Double] = floatingPointNumber ^^ { s =>
+  // TODO(zhihan): This is not currently supported as Scala's built-in
+  // float literal in JavaTokenParser will also accept integers.
+  private def floatLiteral: Parser[Double] = floatingPointNumber ^^ { s =>
     new java.lang.Double(s)
   }
 
@@ -57,13 +75,6 @@ object GCLParser extends JavaTokenParsers {
   def singleQuotedString: Parser[String] = """'[^']*'""".r ^^ {
     _.toString.replaceAll("'", "") }
 
-  def literal: Parser[Operand] = (stringLiteral ^^ {
-    StringLiteral(_) }) | (booleanLiteral ^^ {
-      BooleanLiteral(_)}) | (integerLiteral ^^ {
-        IntegerLiteral(_)})
-  // TODO(zhihan): Cannot support float literal as Scala's built-in float literal
-  // in JavaTokenParser will also accept integers.
-  
  /**
     * Expressions
     * The following is a simplified version of the rules for parsing expressions.
@@ -77,10 +88,6 @@ object GCLParser extends JavaTokenParsers {
   def additiveOperator: Parser[Types.AdditiveOp] = """\+|-""".r ^^ { _.toString }
   def multiplicativeOperator: Parser[Types.MultiplicativeOp] = """\*|/""".r ^^ {_.toString}
   def unaryOperator: Parser[Types.UnaryOp] = "!|-".r ^^ { _.toString }
-
-  def operand: Parser[Operand] = ("(" ~ expression ~ ")" ^^ {
-    case _ ~ e ~ _ => e
-  }) | literal
 
   def factor: Parser[Factor] = (unaryOperator ~ operand ^^ {
     case op ~ v => Factor(v, Some(op), None)
@@ -110,15 +117,15 @@ object GCLParser extends JavaTokenParsers {
   }
 
   /** Expression */
-  def expression: Parser[Disjunction] = conjunction ~ ("||" ~ conjunction).* ^^ {
+  def expression: Parser[Types.Expression] = conjunction ~ ("||" ~ conjunction).* ^^ {
     case d ~ pairList => Disjunction(d :: (pairList map {case _ ~ x => x}))
   }
 
   /** Lists */
-  def list: Parser[ListValue] = ("[" ~ nonemptyList ~ "]" ^^ {
-    case _ ~ l ~ _ => l}) | ("""\[\s*\]""".r ^^ { _ => ListValue(List())}) 
-  def nonemptyList: Parser[ListValue] = expression ~ ("," ~ expression).* ~ ",?".r ^^ {
-    case e ~ pairList ~ _ => ListValue(e :: (pairList map { case _ ~ e => e }))
+  def list: Parser[ListExpression] = ("[" ~ nonemptyList ~ "]" ^^ {
+    case _ ~ l ~ _ => l}) | ("""\[\s*\]""".r ^^ { _ => ListExpression(List())}) 
+  def nonemptyList: Parser[ListExpression] = expression ~ ("," ~ expression).* ~ ",?".r ^^ {
+    case e ~ pairList ~ _ => ListExpression(e :: (pairList map { case _ ~ e => e }))
   }
 
   /** Fields */
@@ -135,13 +142,25 @@ object GCLParser extends JavaTokenParsers {
   })
 
   def value: Parser[Value] = ( "=" ~ expression ^^ {
-    case _ ~ e => SimpleValue(e)
+    case _ ~ e => Value(e)
   })
 
   def field: Parser[Field] = fieldHeader ~ value ^^ {
     case h ~ v => Field(h, v)
   }
 
+  def structure: Parser[Structure] = ("{" ~ nonemptyFieldList ~ "}" ^^ {
+    case _ ~ l ~ _ => { Structure(l) } 
+  }) | ("""\{\s*\}""".r ^^ { _ => Structure(List[Field]()) })
+
+  private def nonemptyFieldList: Parser[List[Field]] =
+    rep1(field ~ ",?".r) ^^ {
+      _.map {case f ~ _ => f}
+  }
+
+  def operand: Parser[Operand] = ("(" ~ expression ~ ")" ^^ {
+    case _ ~ e ~ _ => e
+  }) | literal | list | structure
 
   /** Expansions */
   def signatureList: Parser[List[Types.Identifier]] = ("""\(\w*\)""".r ^^ { 
@@ -167,5 +186,11 @@ object GCLParser extends JavaTokenParsers {
     case h ~ pairList =>
       h :: (pairList map {case _ ~ id  => id})
   }
+
+
+  /** File
+    * 
+    * A file is simply a nonempty list of fields */
+  def file: Parser[List[Field]] = nonemptyFieldList
 
 }
