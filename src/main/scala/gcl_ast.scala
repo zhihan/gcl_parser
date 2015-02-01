@@ -73,20 +73,21 @@ case class FieldHeader(
   val props: Types.FieldProperties,
   val id: Types.Identifier) {}
 
-
-
-case class Structure(val fields: List[Field]) extends Operand {} 
+case class Structure(val fields: List[Entry]) extends Operand {} 
 
 /** 
   * Entry 
+  * 
   * An entry is similar to a statement in an imperative language.
   */
 abstract class Entry
+
 /** Import statement */
 case class Import(
   val fileName: Types.FileName,
   val as: Types.Identifier) extends Entry {}
 
+/** Field definition */
 case class Field(
   val header: FieldHeader,
   val value: Value) extends Entry {}

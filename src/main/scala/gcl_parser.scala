@@ -136,7 +136,7 @@ object GCLParser extends JavaTokenParsers {
     """\+|-""".r ^^ { _.toString }
 
   private def multiplicativeOperator: Parser[Types.MultiplicativeOp] =
-    """\*|/""".r ^^ {_.toString}
+    """\*|/|<<|>>|%""".r ^^ {_.toString}
 
   private def unaryOperator: Parser[Types.UnaryOp] = "!|-".r ^^ { _.toString }
 
@@ -184,17 +184,23 @@ object GCLParser extends JavaTokenParsers {
   /** Lists */
   def list: Parser[ListExpression] = ("[" ~ nonemptyList ~ "]" ^^ {
     case _ ~ l ~ _ => l}) | ("""\[\s*\]""".r ^^ { _ => ListExpression(List())}) 
-  def nonemptyList: Parser[ListExpression] = expression ~ ("," ~ expression).* ~ ",?".r ^^ {
+
+  private def nonemptyList: Parser[ListExpression] = expression ~ (
+    "," ~ expression).* ~ ",?".r ^^ {
     case e ~ pairList ~ _ => ListExpression(e :: (pairList map { case _ ~ e => e }))
   }
 
   /** Fields */
-  def fieldProperty: Parser[String] = "final" | "local" | "template" | "validation_ignore"
-  def fieldProperties: Parser[List[String]] = fieldProperty.* 
+  private def fieldProperty: Parser[String] =
+    "final" | "local" | "template" | "validation_ignore"
+
+  def fieldProperties: Parser[List[String]] = fieldProperty.*
+
   def fieldPropertiesNonEmpty: Parser[List[String]] = rep1(fieldProperty)
  
   // TODO(zhihan): I do not quite understand the semantics of the clause
-  // fieldProperties id id 
+  // fieldProperties id id
+
   def fieldHeader: Parser[FieldHeader] = (fieldProperties ~ "." ~ identifier ^^ {
     case props ~ "." ~ id => FieldHeader(props, id)
   }) | (fieldProperties ~ identifier ^^ {
@@ -209,16 +215,17 @@ object GCLParser extends JavaTokenParsers {
     case h ~ v => Field(h, v)
   }
 
-  def structure: Parser[Structure] = ("{" ~ nonemptyFieldList ~ "}" ^^ {
+  /** 
+    * Structure 
+    */
+  def structure: Parser[Structure] = ("{" ~ nonemptyEntryList ~ "}" ^^ {
     case _ ~ l ~ _ => { Structure(l) } 
   }) | ("""\{\s*\}""".r ^^ { _ => Structure(List[Field]()) })
 
-  private def nonemptyFieldList: Parser[List[Field]] =
-    rep1(field ~ ",?".r) ^^ {
-      _.map {case f ~ _ => f}
-  }
-
-  def operand: Parser[Operand] = ("(" ~ expression ~ ")" ^^ {
+  /** 
+    *  Operand 
+    */
+  private def operand: Parser[Operand] = ("(" ~ expression ~ ")" ^^ {
     case _ ~ e ~ _ => e
   }) | literal | list | structure
 
@@ -241,11 +248,18 @@ object GCLParser extends JavaTokenParsers {
     case _ ~ fileName ~ _ ~ id => Import(fileName, id)
   }
 
+  private def entry: Parser[Entry] = field | importDef
 
+  private def nonemptyEntryList: Parser[List[Entry]] =
+    rep1(entry ~ ",?".r) ^^ {
+      _.map {case f ~ _ => f}
+  }
 
-  /** File
+  /** 
+    * File
     * 
-    * A file is simply a nonempty list of fields */
-  def file: Parser[List[Field]] = nonemptyFieldList
+    * A file is simply a nonempty list of entries. 
+    */
+  def file: Parser[List[Entry]] = nonemptyEntryList
 
 }

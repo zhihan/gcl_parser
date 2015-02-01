@@ -49,8 +49,6 @@ class GCLParserTests extends FunSuite {
   }
 
   test("Field properties") {
-    assert(GCLParser.parseAll(GCLParser.fieldProperty, "final").successful)
-
     assert(GCLParser.parseAll(GCLParser.fieldProperties, "final").successful)
     assert(GCLParser.parseAll(GCLParser.fieldProperties, "").successful)
     assert(GCLParser.parseAll(GCLParser.fieldProperties, "final local").successful)
@@ -170,7 +168,7 @@ class GCLParserTests extends FunSuite {
   test("Valid expressions") {
     val l = List("8", "8+1", "8+1>8", "8+1>8 && 8-1 < 8",
       "8*1>7+0 && 7>6/2 || 2>1", "(1+2)*3", "(1+2>1) && (2<0)",
-      "(8*1)+1", "[] + [1]")
+      "(8*1)+1", "[] + [1]", "2 >> 1", "1 << 2", "5 % 2" )
     l.forall(parseExpression(_).successful)
   }
 
@@ -224,9 +222,12 @@ class GCLParserTests extends FunSuite {
 
   test("Valid file") {
    val content = """ 
+import 'a/b' as ab
+
 a = 1,
 b = 2,
 x = {
+  import "c/d" as cd,
   a = 1, 
   b = "2",
   c = 1 + 2
@@ -234,7 +235,7 @@ x = {
 """
     val f = parseFile(content)
     assert(f.successful)
-    assert(f.get.size == 3)
+    assert(f.get.size == 4)
   }
 
 }
