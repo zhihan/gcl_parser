@@ -3,6 +3,17 @@ package me.zhihan.gcl
 import scala.util.parsing.combinator._
 import scala.util.parsing.combinator.JavaTokenParsers
 
+/**
+  * GCLParser - A parser for Google Generic Configuration Language
+  * (GCL)
+  * 
+  * A parser for GCL written with Scala parser combinators. A few
+  * simplifications are made based on my understanding of the GCL
+  * language specification. See the details in the comments of the
+  * parsing rules.
+  * 
+  */
+
 object GCLParser extends JavaTokenParsers {
 
   /** 
