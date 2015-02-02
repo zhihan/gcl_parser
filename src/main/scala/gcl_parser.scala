@@ -1,7 +1,7 @@
 package me.zhihan.gcl 
 
 import scala.util.parsing.combinator._
-import scala.util.parsing.combinator.JavaTokenParsers
+import scala.util.parsing.combinator.RegexParsers
 
 /**
   * GCLParser - A parser for Google Generic Configuration Language
@@ -14,7 +14,14 @@ import scala.util.parsing.combinator.JavaTokenParsers
   * 
   */
 
-object GCLParser extends JavaTokenParsers {
+object GCLParser extends RegexParsers {
+  /** 
+    * Comments 
+    * 
+    * Comments are C++ like, i.e., //... until the end of line, or
+    *  python like, i.e., #... until the end of line.
+    */
+  protected override val whiteSpace = """(\#.*|\/\/.*|\s)+""".r
 
   /** 
     * Identifiers
@@ -97,15 +104,15 @@ object GCLParser extends JavaTokenParsers {
   /** Floating point numbers */
   // TODO(zhihan): This is not currently supported as Scala's built-in
   // float literal in JavaTokenParser will also accept integers.
-  private def floatLiteral: Parser[Double] = floatingPointNumber ^^ { s =>
+  /* private def floatLiteral: Parser[Double] = floatingPointNumber ^^ { s =>
     new java.lang.Double(s)
-  }
+  } */
 
   /**
     * Strings 
     */
   //TODO(zhihan): Handling special strings
-  override def stringLiteral: Parser[String] =
+  def stringLiteral: Parser[String] =
     doubleQuotedString | singleQuotedString
   def doubleQuotedString: Parser[String] = """"[^"]*"""".r ^^ {
     _.toString.replaceAll("\"", "") }

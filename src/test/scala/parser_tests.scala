@@ -12,6 +12,15 @@ class GCLParserTests extends FunSuite {
     assert(validIds.forall(parseIdent))
   }
 
+  test("Comments") {
+    val validIds = List("a # ignore me",
+      """ # ignore me
+     a""", "a // ignore me",
+    """// ignore me 
+a""")
+    assert(validIds.forall(parseIdent))
+  }
+
   test("Invalid identifiers") {
     val invalidIds = List("0", "0a", "0_", "-a", "a b")
     assert(!invalidIds.exists(parseIdent))
