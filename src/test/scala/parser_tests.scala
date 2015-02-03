@@ -57,34 +57,6 @@ a""")
     assert(Operand.isString(y.get,"ab"))
   }
 
-  test("Field properties") {
-    assert(GCLParser.parseAll(GCLParser.fieldProperties, "final").successful)
-    assert(GCLParser.parseAll(GCLParser.fieldProperties, "").successful)
-    assert(GCLParser.parseAll(GCLParser.fieldProperties, "final local").successful)
-
-    assert(GCLParser.parseAll(
-      GCLParser.fieldPropertiesNonEmpty, "final").successful)
-    assert(!GCLParser.parseAll(
-      GCLParser.fieldPropertiesNonEmpty, "").successful)
-    assert(GCLParser.parseAll(
-      GCLParser.fieldPropertiesNonEmpty, "final local").successful)
-  }
-
-  def parseFieldHeader(x:String) =
-    GCLParser.parseAll(GCLParser.fieldHeader, x)
-
-  test("Field header") {
-    val a = parseFieldHeader(" .a")
-    assert(a.successful)
-    assert(a.get.props.size == 0)
-    assert(a.get.id == "a")
-
-    val b = parseFieldHeader("final local b")
-    assert(b.successful)
-    assert(b.get.props.size == 2)
-    assert(b.get.id == "b")
-  }
-
   def parseSignature(x:String) =
     GCLParser.parseAll(GCLParser.signature, x)
 
@@ -214,6 +186,8 @@ a""")
 
   test("Valid fields") {
     val l = List("local x = 1",
+      "final local b = 2",
+      ".x = 1",
       "x = 1",
       "x = 1.0",
       "x = true",

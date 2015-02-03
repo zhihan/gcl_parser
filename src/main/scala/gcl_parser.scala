@@ -196,7 +196,6 @@ object GCLParser extends RegexParsers {
     * expressions as its entries, e.g., [1 + 2]. Lists can have an
     * optional comma at the end, i.e., [1,2,] and [1,2] are parsed
     * equivalently.
-    * 
     */
 
   /** Lists */
@@ -208,45 +207,72 @@ object GCLParser extends RegexParsers {
     case e ~ pairList ~ _ => ListExpression(e :: (pairList map { case _ ~ e => e }))
   }
 
-  /** Fields */
-  private def fieldProperty: Parser[String] =
-    "final" | "local" | "template" | "validation_ignore"
-
-  def fieldProperties: Parser[List[String]] = fieldProperty.*
-
-  def fieldPropertiesNonEmpty: Parser[List[String]] = rep1(fieldProperty)
- 
-  // TODO(zhihan): I do not quite understand the semantics of the clause
-  // fieldProperties id id
-
-  def fieldHeader: Parser[FieldHeader] = (fieldProperties ~ "." ~ identifier ^^ {
-    case props ~ "." ~ id => FieldHeader(props, id)
-  }) | (fieldProperties ~ identifier ^^ {
-    case props ~ id => FieldHeader(props, id)
-  })
-
-  def value: Parser[Value] = ( "=" ~ expression ^^ {
-    case _ ~ e => Value(e)
-  })
-
-  def field: Parser[Field] = fieldHeader ~ value ^^ {
-    case h ~ v => Field(h, v)
-  }
-
-  /** 
-    * Structure 
-    */
-  def structure: Parser[Structure] = ("{" ~ nonemptyEntryList ~ "}" ^^ {
-    case _ ~ l ~ _ => { Structure(l) } 
-  }) | ("""\{\s*\}""".r ^^ { _ => Structure(List[Field]()) })
-
-  /** 
+  /**
     *  Operand 
     */
   private def operand: Parser[Operand] = ("(" ~ expression ~ ")" ^^ {
     case _ ~ e ~ _ => e
   }) | literal | list | structure
 
+  /** 
+    * Fields 
+    * 
+    *  Fields are part of a structure. For example
+    * 
+    *    x = 'some_file',
+    *    local y = 10
+    * 
+    *  Root-level fields, i.e., fields that are not enclosed in any
+    *  structures are associated with the 'root' structure of the
+    *  file. Fields can have properties and headers. 
+    */
+  def field: Parser[Field] = fieldHeader ~ value ^^ {
+    case h ~ v => Field(h, v)
+  }
+
+  private def fieldProperty: Parser[String] =
+    "final" | "local" | "template" | "validation_ignore"
+
+  private def fieldProperties: Parser[List[String]] = fieldProperty.*
+
+  // TODO(zhihan): I do not quite understand the semantics of the clause
+  // fieldProperties id id.
+  private def fieldHeader: Parser[FieldHeader] = (fieldProperties ~ "." ~ identifier ^^ {
+    case props ~ "." ~ id => FieldHeader(props, id)
+  }) | (fieldProperties ~ identifier ^^ {
+    case props ~ id => FieldHeader(props, id)
+  })
+
+  private def value: Parser[Value] = ( "=" ~ expression ^^ {
+    case _ ~ e => Value(e)
+  })
+
+  /** 
+    * Structure 
+    * 
+    * Structures are groups of entities (field, check, expansion or
+    * import statements). Structures are hierarchical, i.e., a
+    * structure can contain other structures. Every GCL file has a
+    * root-level structure associated with the file.
+    */
+  def structure: Parser[Structure] = ("{" ~ nonemptyEntryList ~ "}" ^^ {
+    case _ ~ l ~ _ => { Structure(l) } 
+  }) | ("""\{\s*\}""".r ^^ { _ => Structure(List[Entry]()) })
+
+  private def nonemptyEntryList: Parser[List[Entry]] =
+    rep1(entry ~ ",?".r) ^^ {
+      _.map {case f ~ _ => f}
+  }
+
+  private def entry: Parser[Entry] = field | importDef
+
+
+  /** Import statements */
+  def importDef: Parser[Import] = "import" ~ stringLiteral ~ "as" ~ identifier ^^ {
+    case _ ~ fileName ~ _ ~ id => Import(fileName, id)
+  }
+
+ 
   /** Expansions */
   def signatureList: Parser[List[Types.Identifier]] = ("""\(\w*\)""".r ^^ { 
     _ => List[Types.Identifier]()
@@ -259,18 +285,6 @@ object GCLParser extends RegexParsers {
   def signature: Parser[List[Types.Identifier]] = signatureList.? ^^ {
     case Some(listId) => listId
     case None => List[Types.Identifier]()
-  }
-
-  /** Import statements */
-  def importDef: Parser[Import] = "import" ~ stringLiteral ~ "as" ~ identifier ^^ {
-    case _ ~ fileName ~ _ ~ id => Import(fileName, id)
-  }
-
-  private def entry: Parser[Entry] = field | importDef
-
-  private def nonemptyEntryList: Parser[List[Entry]] =
-    rep1(entry ~ ",?".r) ^^ {
-      _.map {case f ~ _ => f}
   }
 
   /** 

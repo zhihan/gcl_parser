@@ -55,8 +55,7 @@ object Operand {
 
 case class ListExpression(val value:List[Types.Expression]) extends Operand {}
 
-// NOTE
-// Value is synonymous to assignment
+/** Value is synonymous to assignment */
 case class Value(val value: Operand) {}
 
 /* Field definitions */
