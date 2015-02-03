@@ -267,13 +267,23 @@ object GCLParser extends RegexParsers {
   private def entry: Parser[Entry] = field | importDef
 
 
-  /** Import statements */
+  /** 
+    *  Import statements 
+    * 
+    *  Import statement import a structure and assign it to a local
+    *  variable, e.g.,
+    * 
+    *    import 'path/to/file.gcl' as x 
+    */
   def importDef: Parser[Import] = "import" ~ stringLiteral ~ "as" ~ identifier ^^ {
     case _ ~ fileName ~ _ ~ id => Import(fileName, id)
   }
 
  
-  /** Expansions */
+  /** 
+    *  Expansions 
+    * 
+    */
   def signatureList: Parser[List[Types.Identifier]] = ("""\(\w*\)""".r ^^ { 
     _ => List[Types.Identifier]()
   }) | ("(" ~ identifier ~ ("," ~ identifier).* ~ ")" ^^ {
