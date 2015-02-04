@@ -22,17 +22,17 @@ case class Disjunction(
 
 case class Conjunction(val clauses: List[Comparison]) {}
 
-abstract class Comparison
+sealed abstract class Comparison
 case class SimpleComp(val s: Sum) extends Comparison {}
 case class Comp(val op: Types.RelOp,
   val lhs: Sum, val rhs: Sum) extends Comparison {}
 
-abstract class Sum
+sealed abstract class Sum
 case class SimpleSum(val term:Term) extends Sum {}
 case class BinarySum(val op:Types.AdditiveOp,
   val lhs: Term, val rhs: Sum) extends Sum {}
 
-abstract class Term
+sealed abstract class Term
 case class SimpleTerm(val factor: Factor) extends Term
 case class BinaryTerm(val op:Types.MultiplicativeOp,
   val lhs: Factor,
@@ -49,10 +49,15 @@ case class BooleanLiteral(val b:Boolean) extends Operand {}
 sealed abstract class Reference extends Operand
 case class SuperReference(
   val path: List[Types.Identifier]) extends Reference {}
-case class RelativeReference(val path:List[Types.Identifier]) extends Reference {}
+
+case class RelativeReference(
+  val path:List[Types.Identifier]) extends Reference {}
+
 case class UpReference(val ref:Reference) extends Reference {}
+
 case class AbsoluteReference(
   val path:List[Types.Identifier]) extends Reference {}
+
 case object Null extends Operand {} 
 
 object Operand {
@@ -68,7 +73,7 @@ case class ListExpression(val value:List[Types.Expression]) extends Operand {}
 case class Value(val value: Operand) {}
 
 /* Field definitions */
-abstract class FieldProperty 
+sealed abstract class FieldProperty 
 case object Final extends FieldProperty {}
 case object Local extends FieldProperty {}
 case object Template extends FieldProperty {}
@@ -89,7 +94,7 @@ case class Structure(val entries: List[Entry]) extends Operand {}
   * 
   * An entry is similar to a statement in an imperative language.
   */
-abstract class Entry
+sealed abstract class Entry
 
 /** Import statement */
 case class Import(
