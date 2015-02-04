@@ -149,8 +149,18 @@ a""")
   test("Valid expressions") {
     val l = List("8", "8+1", "8+1>8", "8+1>8 && 8-1 < 8",
       "8*1>7+0 && 7>6/2 || 2>1", "(1+2)*3", "(1+2>1) && (2<0)",
-      "(8*1)+1", "[] + [1]", "2 >> 1", "1 << 2", "5 % 2" )
+      "(8*1)+1", "[] + [1]", "2 >> 1", "1 << 2", "5 % 2", "a",
+      "@b", "super", "super.a", "null", " A { a = 1 }", "-A { a = 1 }")
     l.forall(parseExpression(_).successful)
+  }
+
+  def parseReference(x: String) =
+    GCLParser.parseAll(GCLParser.reference, x)
+
+  test("Valid references") {
+    val l = List("@a.b", "a.b", "super", "super.a.b",
+      "up.a.b", "up.up.a")
+    l.forall(parseReference(_).successful)
   }
 
   def parseList(x: String) =
@@ -196,6 +206,7 @@ a""")
       "x = [1,2]",
       "x = 1 + 2",
       "x = 'a' + 'b'",
+      "local int x = 1",
       "x = {a = 1, b = '2'}")
     l.forall(parseField(_).successful)
   }
@@ -208,12 +219,16 @@ a""")
 import 'a/b' as ab
 
 a = 1,
-b = 2,
+b = a,
 x = {
   import "c/d" as cd,
   a = 1, 
   b = "2",
-  c = 1 + 2
+  c = 1 + 2,
+  e = cd,
+  f = A {
+    b = null,
+  }
 }
 """
     val f = parseFile(content)

@@ -14,10 +14,11 @@ object Types {
 /** Expression */
 // The root expression with least precedence is the disjunction of
 // logical expressions.
-abstract class Operand
+sealed abstract class Operand
 
 case class Disjunction(
   val clauses: List[Conjunction]) extends Operand {}
+
 
 case class Conjunction(val clauses: List[Comparison]) {}
 
@@ -44,7 +45,15 @@ case class Factor(val operand: Operand,
 case class IntegerLiteral(val i:Int) extends Operand {}
 case class StringLiteral(val s:String) extends Operand {}
 case class BooleanLiteral(val b:Boolean) extends Operand {}
-case class FloatLiteral(val f:Double) extends Operand {}
+
+sealed abstract class Reference extends Operand
+case class SuperReference(
+  val path: List[Types.Identifier]) extends Reference {}
+case class RelativeReference(val path:List[Types.Identifier]) extends Reference {}
+case class UpReference(val ref:Reference) extends Reference {}
+case class AbsoluteReference(
+  val path:List[Types.Identifier]) extends Reference {}
+case object Null extends Operand {} 
 
 object Operand {
   def isTrue(o:Operand) = o == BooleanLiteral(true)
@@ -70,9 +79,10 @@ case class ExpansionInvocation() {
 
 case class FieldHeader(
   val props: Types.FieldProperties,
+  val t: Option[Types.Identifier], 
   val id: Types.Identifier) {}
 
-case class Structure(val fields: List[Entry]) extends Operand {} 
+case class Structure(val entries: List[Entry]) extends Operand {} 
 
 /** 
   * Entry 

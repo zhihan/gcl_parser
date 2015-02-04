@@ -37,10 +37,11 @@ object GCLParser extends RegexParsers {
     """[a-zA-Z_](\w|-)*""".r ^^ { _.toString }
 
   /** Full path identifier */
-  def identifierSeq: Parser[List[Types.Identifier]] = identifier ~ ("." ~ identifier).* ^^ {
-    case h ~ pairList =>
-      h :: (pairList map {case _ ~ id  => id})
-  }
+  def identifierSeq: Parser[List[Types.Identifier]] = identifier ~
+    ("." ~ identifier).* ^^ {
+      case h ~ pairList =>
+        h :: (pairList map {case _ ~ id  => id})
+    }
 
   /**
     * Literals
@@ -158,9 +159,16 @@ object GCLParser extends RegexParsers {
 
   private def unaryOperator: Parser[Types.UnaryOp] = "!|-".r ^^ { _.toString }
 
-  private def factor: Parser[Factor] = (unaryOperator ~ operand ^^ {
+  private def factor: Parser[Factor] = (unaryOperator ~ operand ~ structure ^^ {
+    case op ~ v ~ s => Factor(v, Some(op), Some(s))
+  }) | (unaryOperator ~ operand ^^ {
     case op ~ v => Factor(v, Some(op), None)
-  }) | (operand ^^ { v => Factor(v, None, None)})
+  })  | (operand ~ structure ^^ {
+    case v ~ s => Factor(v, None, Some(s)) 
+  })  | (operand ^^ {
+    v => Factor(v, None, None)
+  })
+
 
   // NOTE
   // The parser forms the expression tree by recursing right, instead of left.
@@ -187,7 +195,37 @@ object GCLParser extends RegexParsers {
       case c ~ pairList => Conjunction(c :: (pairList map { case _ ~ c => c }))
   }
 
-  /** 
+  /**
+    * References 
+    * 
+    * Three types of references are supported: absolute reference ('@a.b'),
+    *  relative reference ('up.a.b') or super reference ('super.a.b').
+    */
+  def reference: Parser[Reference] = superReference | relativeReference | absoluteReference
+
+  private def upReference: Parser[UpReference] =
+    ("""up\.""".r ~ upReference ^^ {
+      case _ ~ r => UpReference(r)
+    }) | ("""up\.""".r ~ relativeReference ^^ {
+      case _ ~ r => UpReference(r)
+    })
+
+  private def relativeReference: Parser[RelativeReference] =
+    identifierSeq ^^ { RelativeReference(_) }
+
+  private def superReference: Parser[SuperReference] =
+    ("""super\.""".r ~ identifierSeq ^^ {
+      case _ ~ l => SuperReference(l)
+    }) | ("""super""" ^^ {
+      _ => SuperReference(List[Types.Identifier]())
+    })
+
+  private def absoluteReference: Parser[AbsoluteReference] =
+    "@" ~ identifierSeq ^^ {
+      case _ ~ l => AbsoluteReference(l)
+    }
+
+  /**
     * Lists
     * 
     *  Lists are list of empty or nonempty entries enclosed in squre
@@ -212,7 +250,7 @@ object GCLParser extends RegexParsers {
     */
   private def operand: Parser[Operand] = ("(" ~ expression ~ ")" ^^ {
     case _ ~ e ~ _ => e
-  }) | literal | list | structure
+  }) | ("null" ^^ {_ => Null }) | literal | list | structure | reference
 
   /** 
     * Fields 
@@ -221,6 +259,7 @@ object GCLParser extends RegexParsers {
     * 
     *    x = 'some_file',
     *    local y = 10
+    *    local service x = T  ('service' is the type)
     * 
     *  Root-level fields, i.e., fields that are not enclosed in any
     *  structures are associated with the 'root' structure of the
@@ -238,14 +277,16 @@ object GCLParser extends RegexParsers {
   // TODO(zhihan): I do not quite understand the semantics of the clause
   // fieldProperties id id.
   private def fieldHeader: Parser[FieldHeader] = (fieldProperties ~ "." ~ identifier ^^ {
-    case props ~ "." ~ id => FieldHeader(props, id)
+    case props ~ "." ~ id => FieldHeader(props, None, id)
+  }) | (fieldProperties ~ identifier ~ identifier ^^ {
+    case props ~ t ~ id => FieldHeader(props, Some(t), id)
   }) | (fieldProperties ~ identifier ^^ {
-    case props ~ id => FieldHeader(props, id)
+    case props ~ id => FieldHeader(props, None, id)
   })
 
-  private def value: Parser[Value] = ( "=" ~ expression ^^ {
+  private def value: Parser[Value] = "=" ~ expression ^^ {
     case _ ~ e => Value(e)
-  })
+  }
 
   /** 
     * Structure 
