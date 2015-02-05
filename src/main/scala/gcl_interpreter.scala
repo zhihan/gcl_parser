@@ -71,16 +71,35 @@ class Interpreter(val ctx:StructVal) {
   }
 
   def evalSum(s: Sum) : Val = {
-    s match {
-      case SimpleSum(t) => evalTerm(t)
-      case BinarySum(_,_,_) => ???
+    def evalOp(l:Val, op:String, r:Val) = {
+      (l, op, r) match {
+        case (IntVal(x), "+", IntVal(y)) => IntVal(x + y)
+        case (IntVal(x), "-", IntVal(y)) => IntVal(x - y)
+        case _ => throw TypeError("Type error in sum")
+      }
+    }
+
+    s.tail.foldLeft (evalTerm(s.lhs)) { (l, r) =>
+      r match {
+        case (op, f) => evalOp(l, op, evalTerm(f))
+      }
     }
   }
+  
 
   def evalTerm(t: Term) = {
-    t match {
-      case SimpleTerm(f) => evalFactor(f)
-      case BinaryTerm(_,_,_) => ???
+    def evalOp(l:Val, op:String, r:Val) = {
+      (l, op, r) match {
+        case (IntVal(x), "*", IntVal(y)) => IntVal(x * y)
+        case (IntVal(x), "/", IntVal(y)) => IntVal(x / y)
+        case _ => throw TypeError("Type error in multiply")
+      }
+    }
+
+    t.tail.foldLeft (evalFactor(t.lhs)) { (l, r) =>
+      r match {
+        case (op, f) => evalOp(l, op, evalFactor(f))
+      }
     }
   }
 

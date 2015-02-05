@@ -33,4 +33,18 @@ class GCLInterpreterTests extends FunSuite {
     assert(actual === IntVal(1))
   }
 
+  def evalExp(x:String) = {
+    val ctx = StructVal()
+    new Interpreter(ctx).evalOperand(
+      GCLParser.parseAll(GCLParser.expression, x).get)
+  }
+
+  test("Interpret expressions") {
+    assert(evalExp("1+2") === IntVal(3))
+    assert(evalExp("1+2-1") === IntVal(2))
+    assert(evalExp("4/2*4") === IntVal(8))
+    assert(evalExp("4+2*4") === IntVal(12))
+    assert(evalExp("4/2+4") === IntVal(6))
+  }
+
 }

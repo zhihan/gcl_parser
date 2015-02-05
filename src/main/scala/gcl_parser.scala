@@ -169,22 +169,19 @@ object GCLParser extends RegexParsers {
     v => Factor(v, None, None)
   })
 
+  private def term: Parser[Term] = factor ~
+    (multiplicativeOperator ~ factor).* ^^ {
+      case f ~ pairList => Term(f, pairList.map {
+        case op ~ f => (op, f) })
+    }
+      
 
-  // NOTE
-  // The parser forms the expression tree by recursing right, instead of left.
-  // May require a tree rewriting.
-  private def term: Parser[Term] = (factor ~ multiplicativeOperator ~ term ^^ {
-    case f ~ op ~ t => BinaryTerm(op, f, t)
-  }) | (factor ^^ {
-    SimpleTerm(_)
-  })
-
-  private def _sum: Parser[Sum] = (term ~ additiveOperator ~ _sum ^^ {
-    case t ~ op ~ s => BinarySum(op, t, s)
-  }) | (term ^^ {
-    SimpleSum(_)
-  })
-
+  private def _sum: Parser[Sum] = term ~
+    (additiveOperator ~ term).* ^^ {
+      case t ~ pairList => Sum(t, pairList.map {
+        case op ~ t => (op, t) })
+    }
+ 
   private def comparison: Parser[Comparison] =
     (_sum ~ relationalOperator ~ _sum ^^ {
       case l ~ op ~ r => Comp(op, l, r)
