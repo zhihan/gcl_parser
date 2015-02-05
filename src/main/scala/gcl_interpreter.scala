@@ -16,8 +16,10 @@ case class StringVal(val s: String) extends Val
 
 case object NullVal extends Val {}
 
+/** Structs */
 case class StructVal(
   val parent: Option[StructVal] = None,
+  val sup: Option[StructVal] = None,
   val scope:Map[String, Val] = Map[String, Val](),
   val t: Option[String] = None) {
 
@@ -28,6 +30,7 @@ case class StructVal(
     scope(id) = value
   }
 
+  /** Evaluate the variable within this scope */
   def evalIn(id: String) = {
     scope.getOrElse(id, NullVal)
   }
