@@ -67,9 +67,28 @@ class Interpreter(val ctx:StructVal) {
   }
 
   def evalComparison(c: Comparison) : Val = {
+    def evalComp(op:String, lval:Val, rval:Val) : Val = {
+      (op, lval, rval) match {
+        case ("<", IntVal(l), IntVal(r)) => BoolVal(l < r)
+        case (">", IntVal(l), IntVal(r)) => BoolVal(l > r)
+        case ("<=", IntVal(l), IntVal(r)) => BoolVal(l <= r)
+        case (">=", IntVal(l), IntVal(r)) => BoolVal(l >= r)
+        case ("==", IntVal(l), IntVal(r)) => BoolVal(l == r)
+        case ("!=", IntVal(l), IntVal(r)) => BoolVal(l != r)
+
+        case ("==", StringVal(l), StringVal(r)) => BoolVal(l == r)
+        case ("!=", StringVal(l), StringVal(r)) => BoolVal(l != r)
+
+        case ("==", BoolVal(l), BoolVal(r)) => BoolVal(l == r)
+        case ("!=", BoolVal(l), BoolVal(r)) => BoolVal(l != r)
+
+        case _ => throw TypeError("Unsupported comparison")
+      }
+    }
+
     c match {
       case SimpleComp(s) => evalSum(s)
-      case Comp(_,_,_) => ???
+      case Comp(op, lhs, rhs) => evalComp(op, evalSum(lhs), evalSum(rhs))
     }
   }
 

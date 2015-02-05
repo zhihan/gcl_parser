@@ -45,6 +45,16 @@ class GCLInterpreterTests extends FunSuite {
     assert(evalExp("4/2*4") === IntVal(8))
     assert(evalExp("4+2*4") === IntVal(12))
     assert(evalExp("4/2+4") === IntVal(6))
+
+    assert(evalExp("2>1") === BoolVal(true))
+    assert(evalExp("2<1") === BoolVal(false))
+    assert(evalExp("2<=1") === BoolVal(false))
+    assert(evalExp("2>=1") === BoolVal(true))
+    assert(evalExp("2==1") === BoolVal(false))
+    assert(evalExp("2!=1") === BoolVal(true))
+
+    assert(evalExp("'a'!='b'") === BoolVal(true))
+    assert(evalExp("'a'=='b'") === BoolVal(false))
   }
 
 }
