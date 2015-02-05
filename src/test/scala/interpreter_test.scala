@@ -6,10 +6,13 @@ import TripleEquals._
 
 class GCLInterpreterTests extends FunSuite {
   def evalLit(x:String) = {
-    Interpreter.evalOperand(GCLParser.parseAll(GCLParser.literal, x).get)
+    val ctx = StructVal()
+    new Interpreter(ctx).evalOperand(
+      GCLParser.parseAll(GCLParser.literal, x).get)
   }
 
   test("Interpret literals") {
+
     assert(evalLit("1") === IntVal(1))
     assert(evalLit("10") === IntVal(10))
     assert(evalLit("0x10") === IntVal(16))
@@ -20,6 +23,14 @@ class GCLInterpreterTests extends FunSuite {
 
     assert(evalLit("'a'") === StringVal("a"))
     assert(evalLit("\"a\"") === StringVal("a"))
+  }
+
+  test("Interpret field") {
+    val ctx = StructVal()
+    val field = GCLParser.parseAll(GCLParser.field, "x = 1").get
+    new Interpreter(ctx).evalField(field)
+    val actual = ctx.evalIn("x")
+    assert(actual === IntVal(1))
   }
 
 }

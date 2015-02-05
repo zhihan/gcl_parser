@@ -19,7 +19,6 @@ sealed abstract class Operand
 case class Disjunction(
   val clauses: List[Conjunction]) extends Operand {}
 
-
 case class Conjunction(val clauses: List[Comparison]) {}
 
 sealed abstract class Comparison
