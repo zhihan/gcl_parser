@@ -129,6 +129,9 @@ class Interpreter(val ctx:StructVal) {
     evalOperand(f.operand)
   }
 
+  def evalReference(ref: Reference) = {
+    NullVal;
+  }
 
   def evalOperand(o: Operand) = {
     o match {
@@ -136,7 +139,10 @@ class Interpreter(val ctx:StructVal) {
       case BooleanLiteral(b) => BoolVal(b)
       case StringLiteral(s) => StringVal(s)
       case Disjunction(clauses) => evalDisjunction(clauses)
-      case _ => NullVal
+      case ref:Reference => evalReference(ref)
+      case ListExpression(l) => ???
+      case Null => NullVal
+      case Structure(entries) => ???
     }
   }
 
