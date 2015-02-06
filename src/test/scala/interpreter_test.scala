@@ -5,6 +5,20 @@ import org.scalactic._
 import TripleEquals._
 
 class GCLInterpreterTests extends FunSuite {
+  test("Resolution in scopes") {
+    val struct = GCLParser.parseAll(GCLParser.structure, 
+      """{ a = 1}""").get
+    val scope1 = Scope.newScope(struct)
+    assert(!scope1.resolve("a").isEmpty)
+    assert(scope1.resolve("b").isEmpty)
+
+    val struct2 = GCLParser.parseAll(GCLParser.structure, 
+      """{ b = 1}""").get
+    val scope = Scope.newScope(struct2, parent = scope1)
+    assert(!scope.resolve("a").isEmpty)
+    assert(!scope.resolve("b").isEmpty)
+  }
+
   def evalLit(x:String) = {
     val ctx = StructVal()
     new Interpreter(ctx).evalOperand(

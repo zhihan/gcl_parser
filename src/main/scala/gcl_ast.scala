@@ -1,5 +1,7 @@
 package me.zhihan.gcl
 
+import scala.collection.mutable.Map
+
 object Types {
   type Identifier = String
   type FieldProperties = List[String]
@@ -102,3 +104,55 @@ case class Field(
 
 case class Check() extends Entry {}
 case class Expansion() extends Entry {}
+
+/** 
+  *  Resolution step
+  * In the resolution step, the references for the fields are resolved.
+  * to an AST element.
+  */
+case class Scope(
+  val parent: Option[Scope],
+  val sup:Option[Scope],
+  val scope: Map[String, Operand]) extends Operand {
+
+  private def resolveLocal(id:String): Option[Operand] = 
+    scope.get(id)
+
+  private def resolveLocal(id: List[String]): Option[Operand] = {
+    id match {
+      case List(h) => resolveLocal(h)
+      case h :: tl => resolveLocal(h).flatMap{
+        case x:Scope => x.resolveLocal(tl)
+        case _ => None
+      }
+    }
+  }
+
+  def resolve(id: String): Option[Operand] = {
+    def resolveIn(s: Option[Scope]) = {
+      s match {
+        case Some(sc) => sc.resolve(id)
+        case None => None
+      }
+    }
+    scope.get(id) orElse resolveIn(sup) orElse resolveIn(parent)
+  }
+}
+
+object Scope {
+  def newScope(struct: Structure, 
+    parent: Scope = null, 
+    sup: Scope = null): Scope = {
+    val p = if (parent != null) Some(parent) else None
+    val s = if (sup != null) Some(sup) else None
+
+    val m = Map[String, Operand]()
+    struct.entries.foreach{
+      case Import(_,_) => ()
+      case Field(FieldHeader(_,_,id), Value(v)) => m += (id -> v)
+      case Check() => ()
+      case Expansion() => ()
+    }
+    Scope(p, s, m)
+  }
+}
