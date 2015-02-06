@@ -4,6 +4,40 @@ import scala.collection.mutable.Map
 
 case class ReassignException(message:String) extends Exception(message) {}
 
+/** 
+  *  Resolution step
+  * In the resolution step, the references for the fields are resolved.
+  * to an AST element.
+  */
+
+case class Scope(
+  val parent: Option[Scope],
+  val sup:Option[Scope],
+  val scope: Map[String, Operand]) extend Operand {
+
+  private def resolveLocal(id:String): Option[Operand] = 
+    scope.get(id)
+
+  private def resolveLocal(id: List[String]): Option[Operand] = {
+    id match {
+      List(h) => resolveLocal(h)
+      h :: tl => resolveLocal(h).flatMap(s => s.resolveLocal(tl))
+    }
+  }
+
+  def resolve(id: String): Option[Operand] = {
+    def resolveIn(s: Option[Scope], id: String) = {
+      match s with {
+        Some(sc) => sc.resolve(id)
+        None => None
+      }
+    }
+    scope.get(id) orElse resolveIn(sup) orElse resolveIn(parent)
+  }
+}
+
+
+
 /** Value classes */
 
 sealed abstract class Val 
@@ -18,8 +52,6 @@ case object NullVal extends Val {}
 
 /** Structs */
 case class StructVal(
-  val parent: Option[StructVal] = None,
-  val sup: Option[StructVal] = None,
   val scope:Map[String, Val] = Map[String, Val](),
   val t: Option[String] = None) {
 
