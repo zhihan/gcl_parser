@@ -70,6 +70,7 @@ object Operand {
       case _ => o
     }
   }
+
 }
 
 case class ListExpression(val value:List[Types.Expression]) extends Operand {}
@@ -124,7 +125,9 @@ case class Scope(
   val sup:Option[Scope],
   val scope: Map[String, Operand]) extends Operand {
 
-  override def toString = "Scope " + (if (parent.isEmpty) "" else "$") 
+  override def toString = "Scope " + (if (parent.isEmpty) "" else "$")
+
+  def copy = Scope(parent, sup, scope.clone)
 
   private def resolveLocal(id:String): Option[Operand] = 
     scope.get(id)
@@ -133,31 +136,66 @@ case class Scope(
     id match {
       case List(h) => resolveLocal(h)
       case h :: tl => resolveLocal(h).flatMap{
-        case x:Scope => x.resolveLocal(tl)
+        case x:Scope => x.resolveNoParent(tl)
         case _ => None
       }
     }
   }
 
+  def resolveIn(s: Option[Scope], id:String) =
+    s.flatMap{ sc => sc.resolve(id) }
+
+  def resolveIn(s: Option[Scope], id:List[String]) =
+    s.flatMap{ sc => sc.resolve(id) }
+
   def resolve(id: String): Option[Operand] = {
-    def resolveIn(s: Option[Scope]) = {
-      s match {
-        case Some(sc) => sc.resolve(id)
-        case None => None
-      }
-    }
-    resolveLocal(id) orElse resolveIn(sup) orElse resolveIn(parent)
+    resolveLocal(id) orElse resolveIn(sup, id) orElse resolveIn(parent, id)
   }
 
+  def resolveNoParent(id:List[String]): Option[Operand] = {
+    resolveLocal(id) orElse resolveIn(sup, id)
+  }
   def resolve(id: List[String]): Option[Operand] = {
-    def resolveIn(s: Option[Scope]) = 
-      s.flatMap{ sc => sc.resolve(id) }
-
-    resolveLocal(id) orElse resolveIn(sup) orElse resolveIn(parent)
+    resolveLocal(id) orElse resolveIn(sup, id) orElse resolveIn(parent, id)
   }
+
+  def resolve(ref:Reference): Option[Operand] = {
+    ref match {
+      case SuperReference(id) => ???
+      case RelativeReference(id) => resolve(id)
+      case UpReference(id) => ???
+      case AbsoluteReference(id) => ???
+    }
+  }
+
+  def flattenModifier(o:Operand) = {
+    o match {
+      case Disjunction(List(Conjunction(List(
+        SimpleComp(Sum(Term(
+          Factor(op, None, Some(struct)),List()),List())))))) =>
+        {
+          val modifier = Operand.flatten(struct).asInstanceOf[Structure]
+          val proto = resolve(op.asInstanceOf[Reference]).
+            get.
+            asInstanceOf[Scope]
+          Scope.newModifiedScope(proto, modifier, this)
+        }
+      case _ => o
+    }
+  }
+
+  def flattenAllModifiers {
+    val keys = scope.keySet
+    keys.foreach { id =>
+      val rhs = flattenModifier(scope(id))
+      scope(id) = rhs
+    }
+  }
+
 }
 
 object Scope {
+  /** Creating a new scope object from a structure AST */
   def newScope(struct: Structure, 
     parent: Scope = null, 
     sup: Scope = null): Scope = {
@@ -186,5 +224,11 @@ object Scope {
     self
   }
 
-  
+  /** Create a modified scope object from a structure AST */
+  def newModifiedScope(prototype: Scope,
+    modifier: Structure,
+    parent: Scope = null): Scope =
+    newScope(modifier, parent, prototype)
+
+
 }

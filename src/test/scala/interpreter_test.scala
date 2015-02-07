@@ -1,5 +1,7 @@
 package me.zhihan.gcl
 
+import scala.collection.mutable.Map
+
 import org.scalatest.FunSuite
 import org.scalactic._
 import TripleEquals._
@@ -7,6 +9,14 @@ import TripleEquals._
 class GCLInterpreterTests extends FunSuite {
   def parseStructure(x: String) =
     GCLParser.parseAll(GCLParser.structure, x).get
+
+  test("Scope copy") {
+    val a = Scope(None, None, Map("a" -> IntegerLiteral(1)))
+    val b = a.copy
+    b.scope += ("b" -> IntegerLiteral(2))
+    assert(b.scope.size === 2)
+    assert(a.scope.size === 1)
+  }
 
   test("Resolution in scopes") {
     val struct = parseStructure("""{ a = 1}""")
@@ -32,6 +42,12 @@ class GCLInterpreterTests extends FunSuite {
 { T = { b = 1 },
   a = T { c = 2 } 
 } """)
+    val scope = Scope.newScope(struct)
+    scope.flattenAllModifiers
+    assert(scope.resolve(List("a", "b")).get ===
+      IntegerLiteral(1))
+    assert(scope.resolve(List("a", "c")).get ===
+      IntegerLiteral(2))
   }
 
   def evalLit(x:String) = {
