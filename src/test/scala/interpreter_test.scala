@@ -5,18 +5,33 @@ import org.scalactic._
 import TripleEquals._
 
 class GCLInterpreterTests extends FunSuite {
+  def parseStructure(x: String) =
+    GCLParser.parseAll(GCLParser.structure, x).get
+
   test("Resolution in scopes") {
-    val struct = GCLParser.parseAll(GCLParser.structure, 
-      """{ a = 1}""").get
+    val struct = parseStructure("""{ a = 1}""")
     val scope1 = Scope.newScope(struct)
     assert(!scope1.resolve("a").isEmpty)
     assert(scope1.resolve("b").isEmpty)
 
-    val struct2 = GCLParser.parseAll(GCLParser.structure, 
-      """{ b = 1}""").get
+    val struct2 = parseStructure("""{ b = 1}""")
     val scope = Scope.newScope(struct2, parent = scope1)
     assert(!scope.resolve("a").isEmpty)
     assert(!scope.resolve("b").isEmpty)
+  }
+
+  test("Resolution full path") {
+    val struct = parseStructure("""{ a = { b = 1 } } """)
+    val scope = Scope.newScope(struct)
+    assert(!scope.resolve(List("a", "b")).isEmpty)
+    assert(scope.resolve(List("a", "a")).isEmpty)
+  }
+
+  test("Resolution with modifiers") {
+    val struct = parseStructure("""
+{ T = { b = 1 },
+  a = T { c = 2 } 
+} """)
   }
 
   def evalLit(x:String) = {

@@ -61,6 +61,15 @@ object Operand {
   def isFalse(o:Operand) = o == BooleanLiteral(false)
   def isString(o:Operand, s:String) = o == StringLiteral(s)
   def isInt(o:Operand, i:Int) = o == IntegerLiteral(i)
+
+  def flatten(o:Operand) : Operand = {
+    o match {
+      case Disjunction(List(Conjunction(List(
+        SimpleComp(Sum(Term(
+          Factor(op, None, None), List()),List())))))) => flatten(op)
+      case _ => o
+    }
+  }
 }
 
 case class ListExpression(val value:List[Types.Expression]) extends Operand {}
@@ -115,6 +124,8 @@ case class Scope(
   val sup:Option[Scope],
   val scope: Map[String, Operand]) extends Operand {
 
+  override def toString = "Scope " + (if (parent.isEmpty) "" else "$") 
+
   private def resolveLocal(id:String): Option[Operand] = 
     scope.get(id)
 
@@ -135,7 +146,14 @@ case class Scope(
         case None => None
       }
     }
-    scope.get(id) orElse resolveIn(sup) orElse resolveIn(parent)
+    resolveLocal(id) orElse resolveIn(sup) orElse resolveIn(parent)
+  }
+
+  def resolve(id: List[String]): Option[Operand] = {
+    def resolveIn(s: Option[Scope]) = 
+      s.flatMap{ sc => sc.resolve(id) }
+
+    resolveLocal(id) orElse resolveIn(sup) orElse resolveIn(parent)
   }
 }
 
@@ -147,12 +165,26 @@ object Scope {
     val s = if (sup != null) Some(sup) else None
 
     val m = Map[String, Operand]()
+
     struct.entries.foreach{
       case Import(_,_) => ()
-      case Field(FieldHeader(_,_,id), Value(v)) => m += (id -> v)
+      case Field(FieldHeader(_,_,id), Value(v)) => {
+        m += (id -> Operand.flatten(v))
+      }
       case Check() => ()
       case Expansion() => ()
     }
-    Scope(p, s, m)
+
+    // Create scope for structures
+    val self = Scope(p, s, m)
+    m.foreach { case (id: String, v: Operand) =>
+      v match {
+        case s:Structure => m(id) = newScope(s, self)
+        case _ => ()
+      }
+    }
+    self
   }
+
+  
 }
