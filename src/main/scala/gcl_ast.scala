@@ -16,27 +16,30 @@ object Types {
 /** Expression */
 // The root expression with least precedence is the disjunction of
 // logical expressions.
-sealed abstract class Operand
+sealed abstract class Exp
+sealed abstract class Operand extends Exp 
 
 case class Disjunction(
-  val clauses: List[Conjunction]) extends Operand {}
+  val clauses: List[Exp]) extends Exp {}
 
-case class Conjunction(val clauses: List[Comparison]) {}
+case class Conjunction(
+  val clauses: List[Exp]) extends Exp {}
 
-sealed abstract class Comparison
-case class SimpleComp(val s: Sum) extends Comparison {}
+case class SimpleComp(val s: Exp) extends Exp {}
 case class Comp(val op: Types.RelOp,
-  val lhs: Sum, val rhs: Sum) extends Comparison {}
+  val lhs: Exp, val rhs: Exp) extends Exp {}
 
 case class Sum(
-  val lhs: Term, val tail: List[(Types.AdditiveOp, Term)]) {}
+  val lhs: Exp,
+  val tail: List[(Types.AdditiveOp, Exp)]) extends Exp {}
 
 case class Term(
-  val lhs: Factor, val tail: List[(Types.MultiplicativeOp, Factor)]) {}
+  val lhs: Exp,
+  val tail: List[(Types.MultiplicativeOp, Exp)]) extends Exp {}
 
-case class Factor(val operand: Operand,
+case class Factor(val operand: Exp, 
   val op: Option[Types.UnaryOp],
-  val modifier: Option[Structure]) {}
+  val modifier: Option[Structure]) extends Exp {}
 
 case class IntegerLiteral(val i:Int) extends Operand {}
 case class StringLiteral(val s:String) extends Operand {}
@@ -62,21 +65,14 @@ object Operand {
   def isString(o:Operand, s:String) = o == StringLiteral(s)
   def isInt(o:Operand, i:Int) = o == IntegerLiteral(i)
 
-  def flatten(o:Operand) : Operand = {
-    o match {
-      case Disjunction(List(Conjunction(List(
-        SimpleComp(Sum(Term(
-          Factor(op, None, None), List()),List())))))) => flatten(op)
-      case _ => o
-    }
+  def flatten(o:Exp) : Exp = { o
   }
-
 }
 
 case class ListExpression(val value:List[Types.Expression]) extends Operand {}
 
 /** Value is synonymous to assignment */
-case class Value(val value: Operand) {}
+case class Value(val value: Exp) {}
 
 /* Field definitions */
 sealed abstract class FieldProperty 
@@ -120,19 +116,21 @@ case class Expansion() extends Entry {}
   * In the resolution step, the references for the fields are resolved.
   * to an AST element.
   */
+
+
 case class Scope(
   val parent: Option[Scope],
   val sup:Option[Scope],
-  val scope: Map[String, Operand]) extends Operand {
+  val scope: Map[String, Exp]) extends Exp {
 
   override def toString = "Scope " + (if (parent.isEmpty) "" else "$")
 
   def copy = Scope(parent, sup, scope.clone)
 
-  private def resolveLocal(id:String): Option[Operand] = 
+  private def resolveLocal(id:String): Option[Exp] = 
     scope.get(id)
 
-  private def resolveLocal(id: List[String]): Option[Operand] = {
+  private def resolveLocal(id: List[String]): Option[Exp] = {
     id match {
       case List(h) => resolveLocal(h)
       case h :: tl => resolveLocal(h).flatMap{
@@ -148,18 +146,18 @@ case class Scope(
   def resolveIn(s: Option[Scope], id:List[String]) =
     s.flatMap{ sc => sc.resolve(id) }
 
-  def resolve(id: String): Option[Operand] = {
+  def resolve(id: String): Option[Exp] = {
     resolveLocal(id) orElse resolveIn(sup, id) orElse resolveIn(parent, id)
   }
 
-  def resolveNoParent(id:List[String]): Option[Operand] = {
+  def resolveNoParent(id:List[String]): Option[Exp] = {
     resolveLocal(id) orElse resolveIn(sup, id)
   }
-  def resolve(id: List[String]): Option[Operand] = {
+  def resolve(id: List[String]): Option[Exp] = {
     resolveLocal(id) orElse resolveIn(sup, id) orElse resolveIn(parent, id)
   }
 
-  def resolve(ref:Reference): Option[Operand] = {
+  def resolve(ref:Reference): Option[Exp] = {
     ref match {
       case SuperReference(id) => ???
       case RelativeReference(id) => resolve(id)
@@ -168,21 +166,7 @@ case class Scope(
     }
   }
 
-  def flattenModifier(o:Operand) = {
-    o match {
-      case Disjunction(List(Conjunction(List(
-        SimpleComp(Sum(Term(
-          Factor(op, None, Some(struct)),List()),List())))))) =>
-        {
-          val modifier = Operand.flatten(struct).asInstanceOf[Structure]
-          val proto = resolve(op.asInstanceOf[Reference]).
-            get.
-            asInstanceOf[Scope]
-          Scope.newModifiedScope(proto, modifier, this)
-        }
-      case _ => o
-    }
-  }
+  def flattenModifier(o:Exp) = o
 
   def flattenAllModifiers {
     val keys = scope.keySet
@@ -202,7 +186,7 @@ object Scope {
     val p = if (parent != null) Some(parent) else None
     val s = if (sup != null) Some(sup) else None
 
-    val m = Map[String, Operand]()
+    val m = Map[String, Exp]()
 
     struct.entries.foreach{
       case Import(_,_) => ()
@@ -220,6 +204,7 @@ object Scope {
         case s:Structure => m(id) = newScope(s, self)
         case _ => ()
       }
+      case _ => ()
     }
     self
   }
@@ -232,3 +217,4 @@ object Scope {
 
 
 }
+ 

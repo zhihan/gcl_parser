@@ -176,13 +176,13 @@ object GCLParser extends RegexParsers {
     }
       
 
-  private def _sum: Parser[Sum] = term ~
+  private def _sum: Parser[Exp] = term ~
     (additiveOperator ~ term).* ^^ {
       case t ~ pairList => Sum(t, pairList.map {
         case op ~ t => (op, t) })
     }
  
-  private def comparison: Parser[Comparison] =
+  private def comparison: Parser[Exp] =
     (_sum ~ relationalOperator ~ _sum ^^ {
       case l ~ op ~ r => Comp(op, l, r)
     }) | (_sum ^^ { SimpleComp(_) })
@@ -245,7 +245,7 @@ object GCLParser extends RegexParsers {
   /**
     *  Operand 
     */
-  private def operand: Parser[Operand] = ("(" ~ expression ~ ")" ^^ {
+  private def operand: Parser[Exp] = ("(" ~ expression ~ ")" ^^ {
     case _ ~ e ~ _ => e
   }) | ("null" ^^ {_ => Null }) | literal | list | structure | reference
 

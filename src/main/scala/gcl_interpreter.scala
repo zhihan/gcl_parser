@@ -37,11 +37,11 @@ case class StructVal(
 case class TypeError(message:String) extends Exception(message) {}
 
 class Interpreter(val ctx:StructVal) {
-  def evalDisjunction(l:List[Conjunction]) : Val = {
+  def evalDisjunction(l:List[Exp]) : Val = {
     if (l.size == 1) {
-      evalConjunction(l(0).clauses)
+      evalExp(l(0))
     } else {
-      l map { (x:Conjunction) => evalConjunction(x.clauses)} reduce {
+      l map { evalExp } reduce {
         (x:Val, y:Val) =>
         (x,y) match {
           case (BoolVal(a), BoolVal(b)) => BoolVal(a || b)
@@ -51,11 +51,11 @@ class Interpreter(val ctx:StructVal) {
     }
   }
 
-  def evalConjunction(l:List[Comparison]) : Val = {
+  def evalConjunction(l:List[Exp]) : Val = {
     if (l.size == 1) {
-      evalComparison(l(0))
+      evalExp(l(0))
     } else {
-      l map { evalComparison(_)} reduce { (x:Val, y: Val) =>
+      l map { evalExp(_)} reduce { (x:Val, y: Val) =>
         (x, y) match {
           case (BoolVal(a), BoolVal(b)) => BoolVal(a && b)
           case _ => throw TypeError("Expecting Boolean value in conjunction")
@@ -64,7 +64,7 @@ class Interpreter(val ctx:StructVal) {
     }
   }
 
-  def evalComparison(c: Comparison) : Val = {
+  def evalComparison(c: Exp) : Val = {
     def evalComp(op:String, lval:Val, rval:Val) : Val = {
       (op, lval, rval) match {
         case ("<", IntVal(l), IntVal(r)) => BoolVal(l < r)
@@ -85,8 +85,9 @@ class Interpreter(val ctx:StructVal) {
     }
 
     c match {
-      case SimpleComp(s) => evalSum(s)
-      case Comp(op, lhs, rhs) => evalComp(op, evalSum(lhs), evalSum(rhs))
+      case SimpleComp(s) => evalExp(s)
+      case Comp(op, lhs, rhs) => evalComp(op,
+        evalExp(lhs), evalExp(rhs))
     }
   }
 
@@ -99,9 +100,9 @@ class Interpreter(val ctx:StructVal) {
       }
     }
 
-    s.tail.foldLeft (evalTerm(s.lhs)) { (l, r) =>
+    s.tail.foldLeft (evalExp(s.lhs)) { (l, r) =>
       r match {
-        case (op, f) => evalOp(l, op, evalTerm(f))
+        case (op, f) => evalOp(l, op, evalExp(f))
       }
     }
   }
@@ -116,27 +117,26 @@ class Interpreter(val ctx:StructVal) {
       }
     }
 
-    t.tail.foldLeft (evalFactor(t.lhs)) { (l, r) =>
+    t.tail.foldLeft (evalExp(t.lhs)) { (l, r) =>
       r match {
-        case (op, f) => evalOp(l, op, evalFactor(f))
+        case (op, f) => evalOp(l, op, evalExp(f))
       }
     }
   }
 
   def evalFactor(f: Factor) = {
-    evalOperand(f.operand)
+    evalExp(f.operand)
   }
 
   def evalReference(ref: Reference) = {
     NullVal;
   }
 
-  def evalOperand(o: Operand) = {
+  def evalOperand(o: Exp) = {
     o match {
       case IntegerLiteral(i) => IntVal(i)
       case BooleanLiteral(b) => BoolVal(b)
       case StringLiteral(s) => StringVal(s)
-      case Disjunction(clauses) => evalDisjunction(clauses)
       case ref:Reference => evalReference(ref)
       case ListExpression(l) => ???
       case Null => NullVal
@@ -149,6 +149,21 @@ class Interpreter(val ctx:StructVal) {
     val rhs = evalOperand(field.value.value)
     val id = field.header.id
     ctx.assignIn(id, rhs)
+  }
+
+  def evalExp(exp:Exp) : Val = {
+    exp match {
+      case s:Sum => evalSum(s)
+      case t:Term => evalTerm(t)
+      case f:Factor => evalFactor(f)
+      case r:Reference => evalReference(r)
+      case _:Operand => evalOperand(exp)
+      case _:SimpleComp => evalComparison(exp)
+      case _:Comp => evalComparison(exp)
+      case Disjunction(cl) => evalDisjunction(cl)
+      case Conjunction(cl) => evalConjunction(cl)
+        
+    }
   }
 
 }
