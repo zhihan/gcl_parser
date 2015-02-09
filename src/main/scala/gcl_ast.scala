@@ -2,6 +2,8 @@ package me.zhihan.gcl
 
 import scala.collection.mutable.Map
 
+case class TypeError(message:String) extends Exception(message) {}
+
 object Types {
   type Identifier = String
   type FieldProperties = List[String]
@@ -17,7 +19,6 @@ object Types {
 // The root expression with least precedence is the disjunction of
 // logical expressions.
 sealed abstract class Exp
-sealed abstract class Operand extends Exp 
 
 case class Disjunction(
   val clauses: List[Exp]) extends Exp {}
@@ -41,11 +42,11 @@ case class Factor(val operand: Exp,
   val op: Option[Types.UnaryOp],
   val modifier: Option[Structure]) extends Exp {}
 
-case class IntegerLiteral(val i:Int) extends Operand {}
-case class StringLiteral(val s:String) extends Operand {}
-case class BooleanLiteral(val b:Boolean) extends Operand {}
+case class IntegerLiteral(val i:Int) extends Exp {}
+case class StringLiteral(val s:String) extends Exp {}
+case class BooleanLiteral(val b:Boolean) extends Exp {}
 
-sealed abstract class Reference extends Operand
+sealed abstract class Reference extends Exp
 case class SuperReference(
   val path: List[Types.Identifier]) extends Reference {}
 
@@ -57,19 +58,35 @@ case class UpReference(val ref:Reference) extends Reference {}
 case class AbsoluteReference(
   val path:List[Types.Identifier]) extends Reference {}
 
-case object Null extends Operand {} 
+case object Null extends Exp {} 
 
 object Operand {
-  def isTrue(o:Operand) = o == BooleanLiteral(true)
-  def isFalse(o:Operand) = o == BooleanLiteral(false)
-  def isString(o:Operand, s:String) = o == StringLiteral(s)
-  def isInt(o:Operand, i:Int) = o == IntegerLiteral(i)
+  def isTrue(o:Exp) = o == BooleanLiteral(true)
+  def isFalse(o:Exp) = o == BooleanLiteral(false)
+  def isString(o:Exp, s:String) = o == StringLiteral(s)
+  def isInt(o:Exp, i:Int) = o == IntegerLiteral(i)
 
-  def flatten(o:Exp) : Exp = { o
+  def flatten(o:Exp) : Exp = Exp.simplify(o)
+}
+
+
+object Exp {
+  def simplify(e: Exp): Exp = {
+    e match {
+      case Disjunction(List(x)) => simplify(x)
+      case Conjunction(List(x)) => simplify(x)
+      case SimpleComp(sc) => simplify(sc)
+      case Sum(x, List()) => simplify(x)
+      case Term(x, List()) => simplify(x)
+      case Factor(x, None, None) => simplify(x)
+      case _ => e
+          
+    }
   }
 }
 
-case class ListExpression(val value:List[Types.Expression]) extends Operand {}
+case class ListExpression(
+  val value:List[Types.Expression]) extends Exp {}
 
 /** Value is synonymous to assignment */
 case class Value(val value: Exp) {}
@@ -89,7 +106,7 @@ case class FieldHeader(
   val t: Option[Types.Identifier], 
   val id: Types.Identifier) {}
 
-case class Structure(val entries: List[Entry]) extends Operand {} 
+case class Structure(val entries: List[Entry]) extends Exp {} 
 
 /** 
   * Entry 
@@ -166,13 +183,27 @@ case class Scope(
     }
   }
 
-  def flattenModifier(o:Exp) = o
-
-  def flattenAllModifiers {
+  def inlineModifiers {
     val keys = scope.keySet
     keys.foreach { id =>
-      val rhs = flattenModifier(scope(id))
-      scope(id) = rhs
+      scope(id) match {
+        case Factor(r, None, Some(modifier)) => {
+          if (!r.isInstanceOf[Reference]) {
+            throw TypeError("Cannot modify a non-referenced value")
+          }
+          val ref = r.asInstanceOf[Reference]
+          val proto = resolve(ref).get
+          if (!proto.isInstanceOf[Scope]) {
+            throw TypeError("Trying to modify a non-structure value")
+          }
+          val rhs = Scope.newModifiedScope(proto.asInstanceOf[Scope],
+            modifier, this)
+
+          scope(id) = rhs
+          rhs.inlineModifiers
+        }
+        case _ => ()
+      }
     }
   }
 
@@ -191,7 +222,7 @@ object Scope {
     struct.entries.foreach{
       case Import(_,_) => ()
       case Field(FieldHeader(_,_,id), Value(v)) => {
-        m += (id -> Operand.flatten(v))
+        m += (id -> Exp.simplify(v))
       }
       case Check() => ()
       case Expansion() => ()
@@ -199,7 +230,7 @@ object Scope {
 
     // Create scope for structures
     val self = Scope(p, s, m)
-    m.foreach { case (id: String, v: Operand) =>
+    m.foreach { case (id: String, v: Exp) =>
       v match {
         case s:Structure => m(id) = newScope(s, self)
         case _ => ()

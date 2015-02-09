@@ -34,7 +34,6 @@ case class StructVal(
   }
 }
 
-case class TypeError(message:String) extends Exception(message) {}
 
 class Interpreter(val ctx:StructVal) {
   def evalDisjunction(l:List[Exp]) : Val = {
@@ -64,31 +63,23 @@ class Interpreter(val ctx:StructVal) {
     }
   }
 
-  def evalComparison(c: Exp) : Val = {
-    def evalComp(op:String, lval:Val, rval:Val) : Val = {
-      (op, lval, rval) match {
-        case ("<", IntVal(l), IntVal(r)) => BoolVal(l < r)
-        case (">", IntVal(l), IntVal(r)) => BoolVal(l > r)
-        case ("<=", IntVal(l), IntVal(r)) => BoolVal(l <= r)
-        case (">=", IntVal(l), IntVal(r)) => BoolVal(l >= r)
-        case ("==", IntVal(l), IntVal(r)) => BoolVal(l == r)
-        case ("!=", IntVal(l), IntVal(r)) => BoolVal(l != r)
+  def evalComp(op:String, lval:Val, rval:Val) : Val = {
+    (op, lval, rval) match {
+      case ("<", IntVal(l), IntVal(r)) => BoolVal(l < r)
+      case (">", IntVal(l), IntVal(r)) => BoolVal(l > r)
+      case ("<=", IntVal(l), IntVal(r)) => BoolVal(l <= r)
+      case (">=", IntVal(l), IntVal(r)) => BoolVal(l >= r)
+      case ("==", IntVal(l), IntVal(r)) => BoolVal(l == r)
+      case ("!=", IntVal(l), IntVal(r)) => BoolVal(l != r)
 
-        case ("==", StringVal(l), StringVal(r)) => BoolVal(l == r)
-        case ("!=", StringVal(l), StringVal(r)) => BoolVal(l != r)
+      case ("==", StringVal(l), StringVal(r)) => BoolVal(l == r)
+      case ("!=", StringVal(l), StringVal(r)) => BoolVal(l != r)
 
-        case ("==", BoolVal(l), BoolVal(r)) => BoolVal(l == r)
-        case ("!=", BoolVal(l), BoolVal(r)) => BoolVal(l != r)
+      case ("==", BoolVal(l), BoolVal(r)) => BoolVal(l == r)
+      case ("!=", BoolVal(l), BoolVal(r)) => BoolVal(l != r)
 
-        case _ => throw TypeError("Unsupported comparison")
+      case _ => throw TypeError("Unsupported comparison")
       }
-    }
-
-    c match {
-      case SimpleComp(s) => evalExp(s)
-      case Comp(op, lhs, rhs) => evalComp(op,
-        evalExp(lhs), evalExp(rhs))
-    }
   }
 
   def evalSum(s: Sum) : Val = {
@@ -132,8 +123,14 @@ class Interpreter(val ctx:StructVal) {
     NullVal;
   }
 
-  def evalOperand(o: Exp) = {
-    o match {
+  def evalField(field: Field) {
+    val rhs = evalExp(field.value.value)
+    val id = field.header.id
+    ctx.assignIn(id, rhs)
+  }
+
+  def evalExp(exp:Exp) : Val = {
+    exp match {
       case IntegerLiteral(i) => IntVal(i)
       case BooleanLiteral(b) => BoolVal(b)
       case StringLiteral(s) => StringVal(s)
@@ -142,24 +139,14 @@ class Interpreter(val ctx:StructVal) {
       case Null => NullVal
       case Structure(entries) => ???
       case Scope(_,_,_) => ???
-    }
-  }
 
-  def evalField(field: Field) {
-    val rhs = evalOperand(field.value.value)
-    val id = field.header.id
-    ctx.assignIn(id, rhs)
-  }
-
-  def evalExp(exp:Exp) : Val = {
-    exp match {
       case s:Sum => evalSum(s)
       case t:Term => evalTerm(t)
       case f:Factor => evalFactor(f)
-      case r:Reference => evalReference(r)
-      case _:Operand => evalOperand(exp)
-      case _:SimpleComp => evalComparison(exp)
-      case _:Comp => evalComparison(exp)
+
+      case SimpleComp(sc) => evalExp(sc)
+      case Comp(op, l, r) => evalComp(op,
+        evalExp(l), evalExp(r))
       case Disjunction(cl) => evalDisjunction(cl)
       case Conjunction(cl) => evalConjunction(cl)
         

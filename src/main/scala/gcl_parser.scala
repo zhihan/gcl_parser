@@ -65,7 +65,7 @@ object GCLParser extends RegexParsers {
     * o GCL syntax supports floating point numbers, which is not
     *   yet supported by this parser.
     */
-  def literal: Parser[Operand] = (stringLiteral ^^ {
+  def literal: Parser[Exp] = (stringLiteral ^^ {
     StringLiteral(_) }) | (booleanLiteral ^^ {
       BooleanLiteral(_)}) | (integerLiteral ^^ {
         IntegerLiteral(_)})

@@ -30,7 +30,7 @@ class GCLInterpreterTests extends FunSuite {
     assert(!scope.resolve("b").isEmpty)
   }
 
-  /*
+  
   test("Resolution full path") {
     val struct = parseStructure("""{ a = { b = 1 } } """)
     val scope = Scope.newScope(struct)
@@ -44,17 +44,16 @@ class GCLInterpreterTests extends FunSuite {
   a = T { c = 2 } 
 } """)
     val scope = Scope.newScope(struct)
-    scope.flattenAllModifiers
+    scope.inlineModifiers
     assert(scope.resolve(List("a", "b")).get ===
       IntegerLiteral(1))
     assert(scope.resolve(List("a", "c")).get ===
       IntegerLiteral(2))
   }
-   */
 
   def evalLit(x:String) = {
     val ctx = StructVal()
-    new Interpreter(ctx).evalOperand(
+    new Interpreter(ctx).evalExp(
       GCLParser.parseAll(GCLParser.literal, x).get)
   }
 
@@ -72,7 +71,7 @@ class GCLInterpreterTests extends FunSuite {
     assert(evalLit("\"a\"") === StringVal("a"))
   }
 
-  /*
+  
   test("Interpret field") {
     val ctx = StructVal()
     val field = GCLParser.parseAll(GCLParser.field, "x = 1").get
@@ -80,7 +79,6 @@ class GCLInterpreterTests extends FunSuite {
     val actual = ctx.evalIn("x")
     assert(actual === IntVal(1))
   }
-   */
 
   def evalExp(x:String) = {
     val ctx = StructVal()
