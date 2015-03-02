@@ -271,8 +271,6 @@ object GCLParser extends RegexParsers {
 
   private def fieldProperties: Parser[List[String]] = fieldProperty.*
 
-  // TODO(zhihan): I do not quite understand the semantics of the clause
-  // fieldProperties id id.
   private def fieldHeader: Parser[FieldHeader] = (fieldProperties ~ "." ~ identifier ^^ {
     case props ~ "." ~ id => FieldHeader(props, None, id)
   }) | (fieldProperties ~ identifier ~ identifier ^^ {

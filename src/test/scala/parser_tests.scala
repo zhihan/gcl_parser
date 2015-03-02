@@ -89,6 +89,11 @@ a""")
     assert(b.get.as == "b")
   }
 
+  test("Real imports") {
+    val a = parseImport("import '//production/borg/devtools-sandman/library/sandman_library.gcl' as sandman")
+    assert (a.successful)
+  }
+
   def parseIdSeq(x: String) =
     GCLParser.parseAll(GCLParser.identifierSeq, x)
 
@@ -209,6 +214,16 @@ a""")
       "local int x = 1",
       "x = {a = 1, b = '2'}")
     l.forall(parseField(_).successful)
+  }
+
+  test("Template") {
+    val a = """ 
+template sandbox Unwired = {
+  instance_name = "a"
+}
+"""
+    val x = parseField(a)
+    assert(x.successful)
   }
 
   def parseFile(x: String) =
