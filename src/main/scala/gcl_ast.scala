@@ -2,10 +2,18 @@ package me.zhihan.gcl
 
 import scala.collection.mutable.Map
 
+/**
+  *  Abstract Syntax Tree for GCL
+  * 
+  *  AST serves as an intermediate representation between the parser
+  *  and the interpreter.
+  */
+
 case class TypeError(message:String) extends Exception(message) {}
 
+/** A list of types aliases used in the AST. */
 object Types {
-  type Identifier = String
+  type Identifier = String 
   type FieldProperties = List[String]
   type FileName = String
   type Expression = Disjunction
@@ -16,48 +24,64 @@ object Types {
 }
 
 /** Expression */
-// The root expression with least precedence is the disjunction of
-// logical expressions.
 sealed abstract class Exp
 
+/** A disjunction of logical expressions. */
 case class Disjunction(
   val clauses: List[Exp]) extends Exp {}
 
+/** A conjunction of logical expressions. */
 case class Conjunction(
   val clauses: List[Exp]) extends Exp {}
 
+/** A degenerate case of comparison. TODO: investigate whether this is needed. */
 case class SimpleComp(val s: Exp) extends Exp {}
+
+/** Comparison */
 case class Comp(val op: Types.RelOp,
   val lhs: Exp, val rhs: Exp) extends Exp {}
 
+/** A sum of one or more expressions. */
 case class Sum(
   val lhs: Exp,
   val tail: List[(Types.AdditiveOp, Exp)]) extends Exp {}
 
+/** Multiplication of one or more expressions. */
 case class Term(
   val lhs: Exp,
   val tail: List[(Types.MultiplicativeOp, Exp)]) extends Exp {}
 
+/** An atomic expression that can be used for multiplications. */
 case class Factor(val operand: Exp, 
   val op: Option[Types.UnaryOp],
   val modifier: Option[Structure]) extends Exp {}
 
+/** Integer literal. */
 case class IntegerLiteral(val i:Int) extends Exp {}
+
+/** String literal. */
 case class StringLiteral(val s:String) extends Exp {}
+
+/** Boolean literal. */
 case class BooleanLiteral(val b:Boolean) extends Exp {}
 
+/** References */
 sealed abstract class Reference extends Exp
 case class SuperReference(
   val path: List[Types.Identifier]) extends Reference {}
 
+/** Relative references */
 case class RelativeReference(
   val path:List[Types.Identifier]) extends Reference {}
 
+/** Up references */
 case class UpReference(val ref:Reference) extends Reference {}
 
+/** Absolute references */
 case class AbsoluteReference(
   val path:List[Types.Identifier]) extends Reference {}
 
+/** Null is a special expression */
 case object Null extends Exp {} 
 
 object Operand {
@@ -65,8 +89,6 @@ object Operand {
   def isFalse(o:Exp) = o == BooleanLiteral(false)
   def isString(o:Exp, s:String) = o == StringLiteral(s)
   def isInt(o:Exp, i:Int) = o == IntegerLiteral(i)
-
-  def flatten(o:Exp) : Exp = Exp.simplify(o)
 }
 
 
